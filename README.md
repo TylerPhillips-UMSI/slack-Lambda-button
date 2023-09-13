@@ -20,27 +20,27 @@ This project captures an AWS IoT button press and sends a notification to Slack.
 
 Create a configuration file (`config.json`) with the required settings:
 
-```json
 {
-  "WEBHOOK_URL": "YOUR_SLACK_WEBHOOK_URL",
-  "BUTTON_MESSAGE_MAP": {
-    "BUTTON_ID_1": "Message for Button 1",
-    "BUTTON_ID_2": "Message for Button 2"
-  }
+"WEBHOOK_URL": "YOUR_SLACK_WEBHOOK_URL",
+"BUTTON_MESSAGE_MAP": {
+"BUTTON_ID_1": "Message for Button 1",
+"BUTTON_ID_2": "Message for Button 2"
 }
+}'''
 
 ### 2. Libraries
 This project requires additional Python libraries, specifically requests for sending messages to Slack. Make sure to package the library alongside your Lambda function.
 
-3. Deploying the Lambda Function
-Manual Deployment
+### 3. Deploying the Lambda Function
+#### Manual Deployment
 
-Navigate to AWS Lambda in the AWS Console.
-Create a new function.
-Zip and upload the Lambda function code alongside the required libraries and config.json.
-Assign the necessary execution role.
-Set up the IoT button press event trigger.
-Usage
+- Navigate to AWS Lambda in the AWS Console.
+- Create a new function.
+- Zip and upload the Lambda function code alongside the required libraries and config.json.
+- Assign the necessary execution role.
+- Set up the IoT button press event trigger.
+
+## Usage
 
 After deployment, pressing the AWS IoT button should trigger the Lambda function.
 The function will extract the button ID, get the respective message from config.json, and send it to the Slack channel.
@@ -53,6 +53,6 @@ Contributing
 
 If you find any bugs or have ideas for enhancements, please open an issue or submit a pull request.
 
-License
+## License
 
 This project is licensed under the MIT License.
