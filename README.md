@@ -22,28 +22,34 @@ This project captures an AWS IoT button press and sends a notification to Slack.
 
 ### 1. Configuration File
 
-Create a configuration file (`config.json`) with the required settings:
+Create a configuration file (`config.json`) with the required settings. Expand this file to meet the number of buttons you are deploying:
 
 ```json
 {
   "WEBHOOK_URL": "https://hooks.slack.com/services/WEBHOOK_URL",
   "BUTTON_CONFIG": {
-    "BUTTON_ID": {
+    "DEVICE_ID": {
       "LOCATION": "Front Desk Guest Assistance",
       "MAC": "MAC_ADDRESS",
       "SINGLE": "Guest needs assistance at the Front Desk",
       "WEBHOOK_URL": null
     },
-    "BUTTON": {
+    "DEVICE_ID": {
       "LOCATION": "Gallery Guest Assistance",
       "MAC": "MAC_ADDRESS",
       "SINGLE": "Guest needs assistance in the Gallery",
       "DOUBLE": "OPTIONAL_DOUBLE_MESSAGE",
-      "WEBHOOK_URL": "ALT_URL"
+      "WEBHOOK_URL": "ALT_URL",
     }
   }
 }
 ```
+In the example file above the following are all user-filled values:
+ - WEBHOOK_URL
+ - DEVICE_ID
+ - LOCATION
+ - MAC
+ - ALT_URL
 
 ### 2. Libraries & Packaging
 This project requires additional Python libraries, specifically **requests** for sending messages to Slack. To include these libraries in your Lambda packages:
