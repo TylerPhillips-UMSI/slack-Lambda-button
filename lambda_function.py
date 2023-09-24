@@ -1,73 +1,68 @@
 import json
 import requests
+import time
 
-# Your Slack webhook URL
-WEBHOOK_URL = 'YOUR_SLACK_WEBHOOK_URL'
+# Read the configuration file
+try:
+    with open('config.json', 'r') as file:
+        CONFIG = json.load(file)
+except json.JSONDecodeError as e:
+    with open('config.json', 'r') as file:
+        print(f"Error decoding JSON: {e}")
+        file_content = file.read()
+        lines = file_content.split('\n')
+        if 0 <= e.docidx < len(lines):
+            print(f"Problematic line: {lines[e.docidx]}")
+    raise
 
-# Button to message mapping
-# Syntax is 'deviceId':'message'
-BUTTON_MESSAGE_MAP = {
-    'BUTTON_ID_1': 'Message for Button 1',
-    'BUTTON_ID_2': 'Message for Button 2'
-    .
-    .
-    .
-}
+WEBHOOK_URL = CONFIG["WEBHOOK_URL"]
+BUTTON_CONFIG = CONFIG["BUTTON_CONFIG"]
 
-def post_to_slack(message):
-    payload = {
-        'text': message
-    }
-    response = requests.post(WEBHOOK_URL, data=json.dumps(payload))
+# Dictionary to store the timestamp of the last message sent for each button
+LAST_MESSAGE_TIMESTAMP = {}
+
+
+def post_to_slack(message, webhook_url):
+    payload = {'text': message}
+    response = requests.post(webhook_url, json=payload)
     return response.text
 
-def test_slack_webhook():
-    test_message = "Lambda testing Slack webhook"
-    response = requests.post(WEBHOOK_URL, data=json.dumps({'text': test_message}), headers={'Content-Type': 'application/json'})
-
-    if response.status_code == 200:
-        return "Webhook is reachable and working!"
-    else:
-        return f"Failed to reach webhook. Response: {response.text}"
 
 def lambda_handler(event, context):
-    # Print the entire event to understand its structure
     print(event)
+    device_info = event.get('deviceInfo', {})
+    device_id = device_info.get('deviceId', '').strip()
+    click_type = event['deviceEvent']['buttonClicked']['clickType']
+    remaining_life = device_info.get('remainingLife', '')
+    reported_time = event['deviceEvent']['buttonClicked']['reportedTime']
 
-    # Retrieving deviceId from nested structure in the event
-    deviceInfo = event.get('deviceInfo', {})
-    deviceId = deviceInfo.get('deviceId', None)
+    print(f"Extracted deviceId: {device_id}, clickType: {click_type}")
 
-    # Trim any whitespace from the deviceId
-    if deviceId:
-        deviceId = deviceId.strip()
-
-    print(f"Extracted deviceId: {deviceId}")  # Logging the extracted deviceId
-
-    if not deviceId:
+    if not device_id:
         print('No deviceId provided.')
-        return {
-            'statusCode': 400,
-            'body': 'No deviceId provided.'
-        }
+        return {'statusCode': 400, 'body': 'No deviceId provided.'}
 
-    message = BUTTON_MESSAGE_MAP.get(deviceId, 'Unknown button pressed.')
-    print(f"Retrieved message from BUTTON_MESSAGE_MAP: {message}")  # Log the retrieved message for debugging
-    print("About to send message to Slack...")
-    slack_response = post_to_slack(message)
+    last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
+    current_timestamp = time.time()
+    if current_timestamp - last_timestamp < 60:
+        print('Rate limit applied. Message not sent.')
+        return {'statusCode': 429, 'body': 'Rate limit applied.'}
+
+    button_details = BUTTON_CONFIG.get(device_id, {})
+    message = button_details.get(click_type, f"Unknown button pressed.")
+    location = button_details.get("LOCATION", "Default Location")
+
+    if click_type == "LONG":
+        message = f"Testing button {location} {device_id} battery life is {remaining_life} at {reported_time}"
+
+    webhook_url = button_details.get("WEBHOOK_URL") or WEBHOOK_URL
+
+    print(f"Retrieved message: {message}")
+    print(f"Using Webhook: {webhook_url}")
+
+    slack_response = post_to_slack(message, webhook_url)
     print(f"Received response from Slack: {slack_response}")
 
-    # Finally, check the internet access
-    try:
-        response = requests.get('http://www.google.com', timeout=5)
-        if response.status_code == 200:
-            print('Internet Access Confirmed')
-        else:
-            print(f"Unexpected status code from Google: {response.status_code}")
-    except requests.RequestException as e:
-        print(f"No Internet. Error: {str(e)}")
+    LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
 
-    return {
-        'statusCode': 200,
-        'body': slack_response
-    }
+    return {'statusCode': 200, 'body': slack_response}
