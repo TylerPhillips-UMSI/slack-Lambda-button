@@ -60,14 +60,14 @@ This project requires additional Python libraries, specifically **requests** for
 - Zip the contents of the directory. This zip will include both your Lambda function and the required libraries.
 
 ### 3. Deploying the Lambda Function
-#### Manual Deployment
+## Manual Deployment
 
 - Navigate to AWS Lambda in the AWS Console.
 - Create a new function.
 - Zip and upload the Lambda function code alongside the required libraries and config.json.
 - Assign the necessary execution role.
 
-### IoT Button Deployment
+## IoT Button Deployment
 
 - Setup the [Seeed IoT Button For AWS](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/) using the [AWS IoT 1-Click service](https://aws.amazon.com/iot-1-click/) iOS/Android app.
 - See the [Seeed Studio Wiki](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/) for detailed configuration instructions.
@@ -85,6 +85,10 @@ Confirm that config.json contains the correct configuration.
 ## Contributing
 
 If you find any bugs or have ideas for enhancements, please open an issue or submit a pull request.
+
+## Development Goals
+
+**Migrate to Google sheets for button-specific configuration:** Using Google Sheets as a data source for the Lambda function would allow for a dynamic way for end users to change configurations without updating the Lambda function code or config files.
 
 ## License
 
