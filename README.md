@@ -13,7 +13,6 @@ Depending on the button's configuration, different messages can be sent to desig
 - **Verbose CloudWatch Logging**: Gain insights into button presses, messages, and potential errors in real-time.
 - **Dynamic Slack Webhook**: Send notifications to different Slack channels or workspaces based on button configuration.
 - **Rate Limiting**: Prevents button spam by enforcing a 1 minute cooldown period between messages.
-- **Google Sheets Integration**: (Planned) For dynamic, on-the-fly configuration changes without redeploying the Lambda function.
 
 ## Prerequisites
 
