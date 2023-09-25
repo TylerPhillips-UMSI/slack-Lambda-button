@@ -108,9 +108,9 @@ If you find any bugs or have ideas for enhancements, please open an issue or sub
 
 ## Development Goals
 
-**Migrate to Google sheets for button-specific configuration:** (planned) This would allow users to dynamically change configurations without updating the Lambda function code or config files.
-**User-Definable Rate Limiting:** Make the rate limit user-definable in the configuration file and not hard-coded to the function.
-**Slack Bot Commands:** Enable a test / setup mode that disregards button presses for a user-definable period. This would prevent false alerts from being posted while the buttons are deployed.
+- **Migrate to Google sheets for button-specific configuration:** (planned) This would allow users to dynamically change configurations without updating the Lambda function code or config files.
+- **User-Definable Rate Limiting:** Make the rate limit user-definable in the configuration file and not hard-coded to the function.
+- **Slack Bot Commands:** Enable a test / setup mode that disregards button presses for a user-definable period. This would prevent false alerts from being posted while the buttons are deployed.
 
 ## Credits
 
