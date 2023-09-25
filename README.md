@@ -1,4 +1,4 @@
-# AWS Lambda IoT Button Press Slack Notifier
+# AWS IoT Button Press Slack Notifier via Lambda Function
 
 This project integrates the AWS IoT button with Slack to create an on-demand alert system. Designed primarily as a silent assistance request mechanism, it serves two main use-cases:
 
