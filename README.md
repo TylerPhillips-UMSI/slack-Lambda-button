@@ -19,21 +19,21 @@ Depending on the button's configuration, different messages can be sent to desig
 - AWS Account with necessary permissions for Lambda, IoT, and CloudWatch
 - Slack Workspace with a configured incoming webhook
 - Python installed for deployment steps
-- <a href="https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/" target="_blank">Seeed IoT Button For AWS</a>
+- [Seeed IoT Button For AWS](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/)
 
 ## Setup
 
 ### 1. Slack Bot Setup
 
-- Create a new <a href="https://api.slack.com/apps" target="_blank">Slack App</a>.
+- Create a new [Slack App](https://api.slack.com/apps).
 - Under Features, activate `Incoming Webhooks`.
-- Add a new webhook to your workspace. Copy the webhook URL, which will be used in the `config.json`.
+- Add a new webhook to your workspace. Copy the webhook URL, which will be used in the `config.json`. 
 
 ### 2. Configuration File
 
 Create a configuration file (`config.json`) with the required settings. Expand this file to meet the number of buttons you are deploying:
 
-```
+```json
 {
   "WEBHOOK_URL": "https://hooks.slack.com/services/WEBHOOK_URL",
   "BUTTON_CONFIG": {
@@ -88,8 +88,8 @@ To package this library with your Lambda function:
 
 #### IoT Button Deployment
 
-- Set up the <a href="https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/" target="_blank">Seeed IoT Button For AWS</a> using the <a href="https://aws.amazon.com/iot-1-click/" target="_blank">AWS IoT 1-Click service</a> iOS/Android app.
-- For detailed configuration instructions, refer to the <a href="https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/" target="_blank">Seeed Studio Wiki</a>.
+- Set up the [Seeed IoT Button For AWS](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/) using the [AWS IoT 1-Click service](https://aws.amazon.com/iot-1-click/) iOS/Android app.
+- For detailed configuration instructions, refer to the [Seeed Studio Wiki](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/).
 
 ## Usage
 
@@ -114,7 +114,7 @@ If you find any bugs or have ideas for enhancements, please open an issue or sub
 
 ## Credits
 
-Collaborators on this project include <a href="https://openai.com" target="_blank">ChatGPT by OpenAI</a>.
+Collaborators on this project include [ChatGPT by OpenAI](https://openai.com).
 
 ## License
 
