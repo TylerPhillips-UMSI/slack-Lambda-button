@@ -100,6 +100,7 @@ After deployment, pressing the AWS IoT button will trigger the Lambda function. 
 - Check CloudWatch logs for errors or issues during execution.
 - Ensure the IoT button is properly set up and triggering the Lambda function.
 - Confirm that `config.json` contains the correct configurations.
+- Verify the function isn't affected by the rate limit of 1 message per minute which is applied per-button. You can verify this in the CloudWatch logs. Please note that if you need to modify the rate limit it is presently hard-coded in `lambda_function.py`. Future revisions will move this option to `config.json`.
 
 ## Contributing
 
