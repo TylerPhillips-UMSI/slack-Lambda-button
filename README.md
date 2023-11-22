@@ -66,6 +66,7 @@ In the example file above the following are all user-filled values:
 This project requires the `requests` Python library to send messages to Slack. 
 
 To package this library with your Lambda function:
+- Download [lambda_function.py](https://github.com/kylie-grace/slack-Lambda-button/blob/main/lambda_function.py).
 - Create a new directory for your Lambda function.
 - Change into that directory using your terminal or command prompt.
 - Install the required libraries into that directory:
