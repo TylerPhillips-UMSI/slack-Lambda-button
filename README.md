@@ -30,7 +30,7 @@ Depending on the button's configuration, different messages can be sent to desig
 - Add a new webhook to your workspace. Copy the webhook URL, which will be used in the `config.json`. 
 
 ### 2. Configuration File
-
+ 
 Create a configuration file (`config.json`) with the required settings. Expand this file to meet the number of buttons you are deploying:
 
 ```json
