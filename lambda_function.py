@@ -93,3 +93,7 @@ def lambda_handler(event, context):
 
 if __name__ == "__main__":
     init_aws()
+
+    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
+    sheets.add_row(sheets_service, spreadsheet_id, ["testing", "testing", "123"])
+    
