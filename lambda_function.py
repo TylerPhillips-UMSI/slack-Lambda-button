@@ -1,18 +1,27 @@
+"""
+The Slack Lambda Button module for the Duderstadt Center
+"""
+
 import json
-import requests
 import time
+
+import requests
+import boto3
+import sheets
 
 # Read the configuration file
 try:
-    with open('config.json', 'r') as file:
+    with open('config.json', 'r', encoding="utf8") as file:
         CONFIG = json.load(file)
+    with open("aws.json", "r", encoding="utf8") as file:
+        AWS = json.load(file)
 except json.JSONDecodeError as e:
-    with open('config.json', 'r') as file:
+    with open('config.json', 'r', encoding="utf8") as file:
         print(f"Error decoding JSON: {e}")
         file_content = file.read()
         lines = file_content.split('\n')
-        if 0 <= e.docidx < len(lines):
-            print(f"Problematic line: {lines[e.docidx]}")
+        if 0 <= e.lineno < len(lines):
+            print(f"Problematic line: {lines[e.lineno]}")
     raise
 
 WEBHOOK_URL = CONFIG["WEBHOOK_URL"]
@@ -21,8 +30,22 @@ BUTTON_CONFIG = CONFIG["BUTTON_CONFIG"]
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
 
+def init_aws():
+    """
+    Initializes boto3/AWS
+    """
+
+    client = boto3.client('iot-data', 
+                          aws_access_key_id=AWS["AWS_ACCESS_KEY_ID"],
+                          aws_secret_access_key=AWS['AWS_SECRET_ACCESS_KEY'], region_name="Ohio")
+
+    return client
 
 def post_to_slack(message, webhook_url):
+    """
+    Posts a message to Slack
+    """
+    
     payload = {'text': message}
     response = requests.post(webhook_url, json=payload)
     return response.text
@@ -66,3 +89,7 @@ def lambda_handler(event, context):
     LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
 
     return {'statusCode': 200, 'body': slack_response}
+
+
+if __name__ == "__main__":
+    init_aws()
