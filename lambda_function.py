@@ -96,6 +96,6 @@ if __name__ == "__main__":
 
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
     row = sheets.get_row(sheets_service, spreadsheet_id,
-                   2, 3)
+                   row_idx=1, length=2)
 
-    print(row[2])
+    print(row[-1])

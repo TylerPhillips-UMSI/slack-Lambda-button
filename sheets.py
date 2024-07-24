@@ -131,7 +131,7 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id) -> bool:
 
 def open_config() -> TextIO:
 	"""
-	Opens the config/config.json file. Creates one if it doesn't exist.
+	Opens the config/google.json file. Creates one if it doesn't exist.
 
 	Returns:
 	config_file: TextIO -> the config file that we opened
@@ -143,8 +143,8 @@ def open_config() -> TextIO:
 	if not os.path.exists(config_dir):
 		Path(config_dir).mkdir(parents=True, exist_ok=True)
 
-	# If there's no config.json, create one and tell the user
-	config_path = f"{config_dir}/config.json"
+	# If there's no google.json, create one and tell the user
+	config_path = f"{config_dir}/google.json"
 	if not os.path.exists(config_path):
 		with open(config_path, "w", encoding="utf8") as config_file:
 			config_contents = {
