@@ -253,34 +253,34 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 	print(f"{result.get('updatedCells')} cells added in row {next_row}: {cells}")
 	return result
 
-def get_row(sheets_service, spreadsheet_id: str, row_idx: int, length: int = 26) -> List[str]:
+def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row: int = 1,
+			   first_letter: str = "A", last_letter: str = "A") -> List[str]:
 	"""
 	Gets a row in a spreadsheet by index (row_idx)
 	
 	Params:
 	sheets_service -> the Google Sheets service we're using
 	spreadsheet_id: str -> the id of the spreadsheet we're working with
-	row_idx: int -> the row that we need to get
-	length: int = 26 -> the amount of cells to get
+	first_row: int = 1 -> the first row that we need to get
+	last_row: int = 1 -> the last row that we need to get
+	first_letter: str = "A" -> the first column that we need to get
+	last_letter: int = "A" -> the last column that we need to get
 	"""
 
-	final_letter = ord("A")
-	final_letter += length - 1
+	if first_row < 1 or last_row < 1 or first_letter < "A" or last_letter < "A":
+		raise ValueError("Google Sheets starts at A1!")
 
-	# if row_idx is 2 and length is 3
-	# the range could look like:
-	# A2:C2
 	result = (
 		sheets_service.spreadsheets()
 		.values()
 		.get(
 			spreadsheetId=spreadsheet_id,
-			range=f"A{row_idx}:{final_letter}{row_idx}"
+			range=f"{first_letter}{first_row}:{last_letter}{last_row}"
 		)
 		.execute()
 	)
 
-	return result["values"][0]
+	return result["values"]
 
 def setup_sheets():
 	"""
