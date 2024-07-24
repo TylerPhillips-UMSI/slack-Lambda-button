@@ -147,12 +147,16 @@ def get_datetime(update_system_time: bool = False) -> str | None:
     finally:
         return formatted_time
 
-def handle_lambda(device_config: List[str], press_type: str = "SINGLE", actually_post: bool = True):
+def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post: bool = True):
     device_mac = device_config[2]
     device_location = device_config[3]
     device_function = device_config[5]
     device_message = device_config[4]
     device_alt_webhook = None
+
+    # get the time but nice looking + print it :)
+    fancy_time = get_datetime(True)
+    print(f"[{fancy_time}]")
 
     # handle timestamp, check for rate limit
     last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
@@ -161,20 +165,26 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE", actually
         print('Rate limit applied. Message not sent.')
         return {'statusCode': 429, 'body': 'Rate limit applied.'}
 
-
-    final_message = press_type if press_type is not None and press_type != "" else "Unknown button pressed."
+    # handle empty message/location
+    final_message = device_message if device_message is not None and device_message != "" else "Unknown button pressed."
     final_location = device_location if device_location is not None and device_location != "" else "Unknown Location"
 
+    # handle long button presses by sending a test message
     if press_type == "LONG":
-        final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {get_datetime(True)}"
+        final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
 
     print(f"Retrieved message: {final_message}")
     print(f"Using Webhook: {WEBHOOK_URL}")
 
-    slack_response = post_to_slack(final_message, WEBHOOK_URL)
-    print(f"Received response from Slack: {slack_response}")
+    # sort of mocking, I guess? I circumvent API calls, but it's not REALLY mocking is it?
+    if do_post:
+        slack_response = post_to_slack(final_message, WEBHOOK_URL)
+        print(f"Received response from Slack: {slack_response}")
 
-    LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
+        LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
+    else:
+        slack_response = "ok"
+        print(f"{final_message}")
 
     return {'statusCode': 200, 'body': slack_response}
     
@@ -187,4 +197,4 @@ if __name__ == "__main__":
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
 
-    handle_lambda(device_config, click_type="LONG")
+    handle_lambda(device_config, press_type = "SINGLE", do_post = False)
