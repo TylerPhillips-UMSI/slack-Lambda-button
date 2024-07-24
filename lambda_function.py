@@ -9,6 +9,8 @@ import requests
 import boto3
 import sheets
 
+from typing import List
+
 # Read the configuration file
 try:
     with open('config.json', 'r', encoding="utf8") as file:
@@ -111,6 +113,37 @@ def lambda_handler(event, context):
 
     return {'statusCode': 200, 'body': slack_response}
 
+def handle_lambda(device_config: List[str], click_type: str = "SINGLE"):
+    device_mac = device_config[2]
+    device_location = device_config[3]
+    device_function = device_config[5]
+    device_message = device_config[4]
+    device_alt_webhook = None
+
+    # handle timestamp, check for rate limit
+    last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
+    current_timestamp = time.time()
+    if current_timestamp - last_timestamp < 60:
+        print('Rate limit applied. Message not sent.')
+        return {'statusCode': 429, 'body': 'Rate limit applied.'}
+
+
+    final_message = click_type if click_type is not None and click_type != "" else "Unknown button pressed."
+    final_location = device_location if device_location is not None and device_location != "" else "Unknown Location"
+
+    if click_type == "LONG":
+        final_message = f"Testing button {final_location} {device_id} @ {current_timestamp}"
+
+    print(f"Retrieved message: {final_message}")
+    print(f"Using Webhook: {WEBHOOK_URL}")
+
+    slack_response = post_to_slack(final_message, WEBHOOK_URL)
+    print(f"Received response from Slack: {slack_response}")
+
+    LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
+
+    return {'statusCode': 200, 'body': slack_response}
+    
 
 if __name__ == "__main__":
     aws_client = init_aws()
@@ -118,4 +151,6 @@ if __name__ == "__main__":
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
     device_id = BUTTON_CONFIG["device_id"]
 
-    get_config(sheets_service, spreadsheet_id, device_id)
+    device_config = get_config(sheets_service, spreadsheet_id, device_id)
+
+    handle_lambda(device_config, click_type="LONG")
