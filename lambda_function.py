@@ -6,6 +6,9 @@ import json
 import time
 
 import requests
+from datetime import datetime
+from subprocess import DEVNULL, STDOUT, check_call
+
 import boto3
 import sheets
 
@@ -113,7 +116,38 @@ def lambda_handler(event, context):
 
     return {'statusCode': 200, 'body': slack_response}
 
-def handle_lambda(device_config: List[str], click_type: str = "SINGLE"):
+def get_datetime(update_system_time: bool = False) -> str | None:
+    """
+    Gets the current datetime as a beautifully formatted string
+
+    Params:
+    update_system_time: bool -> whether to update the system time (Linux only)
+
+    Returns:
+    formatted_time: str | None -> the formatted time string, if present
+    """
+
+    formatted_time = None
+    try:
+        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit.json", timeout=5)
+        response_data = response.json()
+        iso_datetime = response_data["datetime"]
+        current_time = datetime.fromisoformat(iso_datetime)
+        formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
+
+        # May be useful for keeping system time up-to-date throughout runtime
+        if update_system_time:
+            date_command = f"sudo date -s {iso_datetime}"
+            date_command = date_command.split()
+            check_call(date_command, stdout=DEVNULL, stderr=STDOUT)
+    except requests.exceptions.Timeout:
+        # Fall back on system time, though potentially iffy
+        now = datetime.now()
+        formatted_time = now.strftime("%B %d, %Y %I:%M:%S %p")
+    finally:
+        return formatted_time
+
+def handle_lambda(device_config: List[str], press_type: str = "SINGLE", actually_post: bool = True):
     device_mac = device_config[2]
     device_location = device_config[3]
     device_function = device_config[5]
@@ -128,11 +162,11 @@ def handle_lambda(device_config: List[str], click_type: str = "SINGLE"):
         return {'statusCode': 429, 'body': 'Rate limit applied.'}
 
 
-    final_message = click_type if click_type is not None and click_type != "" else "Unknown button pressed."
+    final_message = press_type if press_type is not None and press_type != "" else "Unknown button pressed."
     final_location = device_location if device_location is not None and device_location != "" else "Unknown Location"
 
-    if click_type == "LONG":
-        final_message = f"Testing button {final_location} {device_id} @ {current_timestamp}"
+    if press_type == "LONG":
+        final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {get_datetime(True)}"
 
     print(f"Retrieved message: {final_message}")
     print(f"Using Webhook: {WEBHOOK_URL}")
