@@ -1,3 +1,10 @@
+"""
+The TKinter GUI module for Slack-Lambda-Button.
+
+Written by:
+Nikki Hess - nkhess@umich.edu
+"""
+
 from tkinter import *
 from tkinter import ttk
 import tkinter.font as tkFont
@@ -5,11 +12,18 @@ import tkinter.font as tkFont
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
 
-def display_gui():
+def display_gui(fullscreen: bool = True):
+    """
+    Displays the TKinter GUI
+    
+    Params:
+    fullscreen: bool = True -> whether to start the app in full screen
+    """
+
     root = Tk()
 
     # set display attributes/config
-    root.attributes("-fullscreen", True)
+    root.attributes("-fullscreen", fullscreen)
     root.configure(bg=BLUE)
     root.title("Slack Lambda Button")
 

@@ -4,8 +4,7 @@
 The Google Sheets/Drive module for PiSwiper.
 
 Written by:
-Nikki Hess
-nkhess@umich.edu
+Nikki Hess - nkhess@umich.edu
 """
 
 import os
