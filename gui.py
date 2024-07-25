@@ -19,8 +19,6 @@ def display_gui(fullscreen: bool = True):
     Params:
     fullscreen: bool = True -> whether to start the app in full screen
     """
-    global MAIZE, BLUE
-
     escape_display_period_ms = 5000
 
     # make a window
@@ -30,9 +28,6 @@ def display_gui(fullscreen: bool = True):
     root.attributes("-fullscreen", fullscreen)
     root.configure(bg=BLUE)
     root.title("Slack Lambda Button")
-
-    # set up a grid
-    # root.grid()
 
     # bind keys
     root.bind("<Escape>", lambda event: root.destroy())
