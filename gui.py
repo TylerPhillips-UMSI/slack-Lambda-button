@@ -5,7 +5,7 @@ Written by:
 Nikki Hess - nkhess@umich.edu
 """
 
-from tkinter import *
+import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
@@ -23,7 +23,8 @@ def display_gui(fullscreen: bool = True):
 
     escape_display_period_ms = 5000
 
-    root = Tk()
+    # make a window
+    root = tk.Tk()
 
     # set display attributes/config
     root.attributes("-fullscreen", fullscreen)
@@ -31,21 +32,27 @@ def display_gui(fullscreen: bool = True):
     root.title("Slack Lambda Button")
 
     # set up a grid
-    root.grid()
+    # root.grid()
 
     # bind keys
     root.bind("<Escape>", lambda event: root.destroy())
 
     # load Montserrat, a U of M standard font
-    montserrat = tkFont.Font(family="Montserrat", size=20)
+    montserrat = tkFont.Font(family="Montserrat", size=32)
 
     # configure style
     style = ttk.Style()
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=montserrat)
 
     # set up the actual items in the display
-    escape_label = ttk.Label(root, text="Press escape to exit", style="Escape.TLabel")
-    escape_label.grid(column=0, row=0)
+    escape_label = tk.Label(root, text="Press escape to exit", style="Escape.TLabel")
+    escape_label.place(relx=0.99, rely=.99, anchor="se")
+
+    dude_img = tk.PhotoImage(file='images/duderstadt-logo.png')
+    dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
+    dude_img_label.place(relx=0.5, rely=0.5, anchor="center") # centered
+
+    # help_label = tk.Label
 
     # Fade the escape label out
     root.after(escape_display_period_ms, fade_label, root, 
@@ -84,7 +91,7 @@ def interpolate(start_color: tuple, end_color: tuple, time: int):
     return tuple(int(a + (b - a) * time) for a, b in zip(start_color, end_color))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def fade_label(root: Tk, label: ttk.Label, start_color: tuple, end_color: tuple, current_step: int,
+def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple, current_step: int,
                fade_duration_ms: int):
     """
     A recursive function that fades a label from one color to another
@@ -113,4 +120,4 @@ def fade_label(root: Tk, label: ttk.Label, start_color: tuple, end_color: tuple,
                    fade_duration_ms)
 
 if __name__ == "__main__":
-    display_gui(fullscreen = False)
+    display_gui(fullscreen = True)
