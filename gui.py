@@ -13,6 +13,7 @@ import lambda_function as lf
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
+SCREEN = 0
 
 def display_gui(fullscreen: bool = True):
     """
@@ -31,37 +32,25 @@ def display_gui(fullscreen: bool = True):
     root.configure(bg=BLUE)
     root.title("Slack Lambda Button")
 
-    # bind keys
-    root.bind("<Escape>", lambda event: root.destroy())
-    root.bind("<Button-1>", lf.handle_interaction)
+    display_frame = tk.Frame(root, bg=BLUE)
+    display_frame.pack(fill=tk.BOTH, expand=True)
 
-    # load Montserrat, a U of M standard font
-    montserrat_32 = tkFont.Font(family="fonts/Montserrat.ttf", size=32)
-    montserrat_48 = tkFont.Font(family="fonts/Montserrat.ttf", size=48)
-    montserrat_64 = tkFont.Font(family="fonts/Montserrat.ttf", size=64)
+    # load oswald, a U of M standard font
+    oswald_32 = tkFont.Font(family="Oswald", size=32)
 
     # configure style
     style = ttk.Style()
-    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=montserrat_32)
-    style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=montserrat_64)
-    style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=montserrat_48)
+    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
+
+    # bind keys
+    root.bind("<Escape>", lambda event: root.destroy())
+    root.bind("<Button-1>", lambda event: handle_interaction(root, display_frame, style, do_post=False))
 
     # set up the actual items in the display
-    escape_label = ttk.Label(root, text="Press escape to exit", style="Escape.TLabel")
+    escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
     escape_label.place(relx=0.99, rely=0.99, anchor="se")
 
-    dude_img = tk.PhotoImage(file='images/duderstadt-logo.png')
-    dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
-    dude_img_label.place(relx=0.5, rely=0.5, anchor="center") # centered
-
-    # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
-    help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
-    help_label.place(relx=0.5, rely=0.7, anchor="center")
-
-    instruction_label = ttk.Label(root, text="Tap the screen or press a button!", style="Instructions.TLabel")
-    instruction_label.place(relx=0.5, rely=0.8, anchor="center")
-
-    # help_label = tk.Label
+    display_main(display_frame, style)
 
     # Fade the escape label out
     root.after(escape_display_period_ms, fade_label, root, 
@@ -69,6 +58,73 @@ def display_gui(fullscreen: bool = True):
 
     # run
     root.mainloop()
+
+def display_main(root: tk.Frame, style: ttk.Style):
+    """
+    Displays the main (idle) screen for the user
+
+    Params:
+    root: tk.Tk -> the root window
+    style: ttk.Style -> the style manager for our window
+    """
+
+    oswald_48 = tkFont.Font(family="Oswald", size=48)
+    oswald_64 = tkFont.Font(family="Oswald", size=64)
+    
+    style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
+    style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_48)
+
+    dude_img = tk.PhotoImage(file='images/duderstadt-logo.png')
+    dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
+    dude_img_label.image = dude_img # keep a reference so it's still in memory
+    dude_img_label.place(relx=0.5, rely=0.4, anchor="center")
+
+    # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
+    help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
+    help_label.place(relx=0.5, rely=0.6, anchor="center")
+
+    instruction_label = ttk.Label(root, text="Tap the screen or press a button!", style="Instructions.TLabel")
+    instruction_label.place(relx=0.5, rely=0.7, anchor="center")
+
+def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True):
+    lf.handle_interaction(do_post)
+    SCREEN = 1
+
+    for widget in frame.winfo_children():
+        widget.place_forget()
+
+    display_post_interaction(root, frame, style)
+
+def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style):
+    """
+    Displays the post interaction instructions
+
+    Params:
+    frame: tk.Frame -> the frame
+    style: ttk.Style -> the style manager for our window
+    """
+
+    oswald_96 = tkFont.Font(family="Oswald", size=96)
+    oswald_80 = tkFont.Font(family="Oswald", size=80)
+
+    style.configure("Received.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
+    style.configure("Waiting.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
+
+    received_label = ttk.Label(frame, text="Help is on the way!", style="Received.TLabel")
+    received_label.place(relx=0.5, rely=0.40, anchor="center")
+
+    received_label = ttk.Label(frame, text="Updates will be provided on this screen.", style="Waiting.TLabel")
+    received_label.place(relx=0.5, rely=0.60, anchor="center")
+
+    three_min = 3 * 60 * 1000 # minutes * seconds * ms
+
+    root.after(three_min, lambda: revert_to_main(frame, style))
+
+def revert_to_main(frame: tk.Frame, style: ttk.Style):
+    for widget in frame.winfo_children():
+        widget.place_forget()
+
+    display_main(frame, style)
 
 def hex_to_rgb(hex: str) -> tuple:
     """

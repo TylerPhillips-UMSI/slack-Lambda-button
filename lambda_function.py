@@ -207,4 +207,4 @@ def handle_interaction(do_post: bool = True):
     handle_lambda(device_config, press_type = "SINGLE", do_post = do_post)
 
 if __name__ == "__main__":
-    handle_interaction(false)
+    handle_interaction(False)
