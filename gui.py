@@ -33,19 +33,30 @@ def display_gui(fullscreen: bool = True):
     root.bind("<Escape>", lambda event: root.destroy())
 
     # load Montserrat, a U of M standard font
-    montserrat = tkFont.Font(family="Montserrat", size=32)
+    montserrat_32 = tkFont.Font(family="fonts/Montserrat.ttf", size=32)
+    montserrat_48 = tkFont.Font(family="fonts/Montserrat.ttf", size=48)
+    montserrat_64 = tkFont.Font(family="fonts/Montserrat.ttf", size=64)
 
     # configure style
     style = ttk.Style()
-    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=montserrat)
+    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=montserrat_32)
+    style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=montserrat_64)
+    style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=montserrat_48)
 
     # set up the actual items in the display
-    escape_label = tk.Label(root, text="Press escape to exit", style="Escape.TLabel")
-    escape_label.place(relx=0.99, rely=.99, anchor="se")
+    escape_label = ttk.Label(root, text="Press escape to exit", style="Escape.TLabel")
+    escape_label.place(relx=0.99, rely=0.99, anchor="se")
 
     dude_img = tk.PhotoImage(file='images/duderstadt-logo.png')
     dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
     dude_img_label.place(relx=0.5, rely=0.5, anchor="center") # centered
+
+    # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
+    help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
+    help_label.place(relx=0.5, rely=0.7, anchor="center")
+
+    instruction_label = ttk.Label(root, text="Tap the screen or press a button!", style="Instructions.TLabel")
+    instruction_label.place(relx=0.5, rely=0.8, anchor="center")
 
     # help_label = tk.Label
 
