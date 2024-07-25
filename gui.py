@@ -9,6 +9,8 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
+import lambda_function as lf
+
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
 
@@ -31,6 +33,7 @@ def display_gui(fullscreen: bool = True):
 
     # bind keys
     root.bind("<Escape>", lambda event: root.destroy())
+    root.bind("<Button-1>", lf.handle_interaction)
 
     # load Montserrat, a U of M standard font
     montserrat_32 = tkFont.Font(family="fonts/Montserrat.ttf", size=32)

@@ -148,6 +148,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
         return formatted_time
 
 def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post: bool = True):
+    device_id = device_config[1]
     device_mac = device_config[2]
     device_location = device_config[3]
     device_function = device_config[5]
@@ -187,9 +188,15 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post:
         print(f"{final_message}")
 
     return {'statusCode': 200, 'body': slack_response}
-    
 
-if __name__ == "__main__":
+def handle_interaction(do_post: bool = True):
+    """
+    Handles a button press or screen tap, basically just does the main functionality
+
+    Params:
+    do_post: bool = True -> whether to post to the Slack or just log in console, for debug
+    """
+
     aws_client = init_aws()
 
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
@@ -197,4 +204,7 @@ if __name__ == "__main__":
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
 
-    handle_lambda(device_config, press_type = "SINGLE", do_post = False)
+    handle_lambda(device_config, press_type = "SINGLE", do_post = do_post)
+
+if __name__ == "__main__":
+    handle_interaction(false)
