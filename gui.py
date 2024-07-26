@@ -103,7 +103,8 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: 
     display_post_interaction(root, frame, style)
 
     # post to Slack/console
-    lf.handle_interaction(do_post)
+    # NEEDS a 20ms delay in order to load the next screen consistently
+    root.after(20, lambda: lf.handle_interaction(do_post))
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style) -> None:
     """
@@ -126,6 +127,8 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style) -> 
 
     waiting_label = ttk.Label(frame, text="Updates will be provided on this screen.", style="Waiting.TLabel")
     waiting_label.place(relx=0.5, rely=0.60, anchor="center")
+
+    root.update_idletasks() # gets stuff to load all at once
 
     three_min = 3 * 60 * 1000 # minutes * seconds * ms
 
