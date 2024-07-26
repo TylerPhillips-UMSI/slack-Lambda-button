@@ -13,9 +13,8 @@ import lambda_function as lf
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
-SCREEN = 0
 
-def display_gui(fullscreen: bool = True):
+def display_gui(fullscreen: bool = True) -> None:
     """
     Displays the TKinter GUI
     
@@ -59,7 +58,7 @@ def display_gui(fullscreen: bool = True):
     # run
     root.mainloop()
 
-def display_main(root: tk.Frame, style: ttk.Style):
+def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
 
@@ -86,20 +85,32 @@ def display_main(root: tk.Frame, style: ttk.Style):
     instruction_label = ttk.Label(root, text="Tap the screen or press a button!", style="Instructions.TLabel")
     instruction_label.place(relx=0.5, rely=0.7, anchor="center")
 
-def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True):
-    lf.handle_interaction(do_post)
-    SCREEN = 1
+def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True) -> None:
+    """
+    Handles the Lambda function and switching to the post-interaction display
 
+    Params:
+    root: tk.Tk -> the root window
+    frame: tk.Frame -> the frame that we're putting widgets in
+    style: ttk.Style -> the style class we're working with
+    do_post: bool = True -> whether or not to post to the Slack channel
+    """
+
+    # clear display
     for widget in frame.winfo_children():
         widget.place_forget()
 
     display_post_interaction(root, frame, style)
 
-def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style):
+    # post to Slack/console
+    lf.handle_interaction(do_post)
+
+def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the post interaction instructions
 
     Params:
+    root: tk.Tk -> the root window
     frame: tk.Frame -> the frame
     style: ttk.Style -> the style manager for our window
     """
@@ -113,35 +124,43 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style):
     received_label = ttk.Label(frame, text="Help is on the way!", style="Received.TLabel")
     received_label.place(relx=0.5, rely=0.40, anchor="center")
 
-    received_label = ttk.Label(frame, text="Updates will be provided on this screen.", style="Waiting.TLabel")
-    received_label.place(relx=0.5, rely=0.60, anchor="center")
+    waiting_label = ttk.Label(frame, text="Updates will be provided on this screen.", style="Waiting.TLabel")
+    waiting_label.place(relx=0.5, rely=0.60, anchor="center")
 
     three_min = 3 * 60 * 1000 # minutes * seconds * ms
 
     root.after(three_min, lambda: revert_to_main(frame, style))
 
-def revert_to_main(frame: tk.Frame, style: ttk.Style):
+def revert_to_main(frame: tk.Frame, style: ttk.Style) -> None:
+    """
+    Reverts from another frame to the main display
+
+    Params:
+    frame: tk.Frame -> the frame we're working with
+    style: ttk.Style -> the style we'd like to hold onto
+    """
+
     for widget in frame.winfo_children():
         widget.place_forget()
 
     display_main(frame, style)
 
-def hex_to_rgb(hex: str) -> tuple:
+def hex_to_rgb(hex_: str) -> tuple:
     """
     Converts a hex string (#000000) to an RGB tuple ((0, 0, 0))
 
     Params:
-    hex: str -> the hex string to convert
+    hex_: str -> the hex string to convert
 
     Returns:
     The tuple our hex converts to
     """
 
-    hex = hex.lstrip("#")
-    return tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
+    hex_ = hex_.lstrip("#")
+    return tuple(int(hex_[i:i+2], 16) for i in (0, 2, 4))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def interpolate(start_color: tuple, end_color: tuple, time: int):
+def interpolate(start_color: tuple, end_color: tuple, time: int) -> tuple:
     """
     Interpolates between two colors based on time
 
@@ -157,7 +176,7 @@ def interpolate(start_color: tuple, end_color: tuple, time: int):
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
 def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple, current_step: int,
-               fade_duration_ms: int):
+               fade_duration_ms: int) -> None:
     """
     A recursive function that fades a label from one color to another
 

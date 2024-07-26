@@ -35,7 +35,7 @@ BUTTON_CONFIG = CONFIG["button_config"]
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
 
-def init_aws():
+def init_aws() -> boto3.client:
     """
     Initializes boto3/AWS
     """
@@ -50,6 +50,11 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
     """
     Gets the configuration for a button from Google Sheets
     and returns it as a List
+
+    Params:
+    sheets_service -> the Google Sheets service we're working with
+    spreadsheet_id -> the id of the spreadsheet we're working on
+    device_id -> the id of this specific device, received from config.json
     """
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
@@ -70,6 +75,10 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
 def post_to_slack(message, webhook_url):
     """
     Posts a message to Slack
+
+    Params:
+    message -> the message to send
+    webhook_url -> the Slack webhook to use (per-channel?)
     """
     
     payload = {'text': message}
@@ -77,7 +86,11 @@ def post_to_slack(message, webhook_url):
     return response.text
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, context) -> dict:
+    """
+    The lambda handler originally written by Kylie-Grace
+    """
+
     print(event)
     device_info = event.get('deviceInfo', {})
     device_id = device_info.get('deviceId', '').strip()
@@ -147,7 +160,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
     finally:
         return formatted_time
 
-def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post: bool = True):
+def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post: bool = True) -> dict:
     device_id = device_config[1]
     device_mac = device_config[2]
     device_location = device_config[3]
@@ -189,7 +202,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post:
 
     return {'statusCode': 200, 'body': slack_response}
 
-def handle_interaction(do_post: bool = True):
+def handle_interaction(do_post: bool = True) -> None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
@@ -197,13 +210,15 @@ def handle_interaction(do_post: bool = True):
     do_post: bool = True -> whether to post to the Slack or just log in console, for debug
     """
 
-    aws_client = init_aws()
+    # aws_client = init_aws()
 
+    # set up Google Sheets and grab the config
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
     device_id = BUTTON_CONFIG["device_id"]
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
 
+    # send a message to Slack or the console
     handle_lambda(device_config, press_type = "SINGLE", do_post = do_post)
 
 if __name__ == "__main__":
