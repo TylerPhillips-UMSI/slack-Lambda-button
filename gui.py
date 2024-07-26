@@ -11,8 +11,53 @@ import tkinter.font as tkFont
 
 import lambda_function as lf
 
+import RPi.GPIO as GPIO # for Argon interactions
+
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
+
+def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True) -> None:
+    """
+    Sets up GPIO event listeners for the Argon case's 4 buttons
+
+    Params:
+    root: tk.Tk -> the root window
+    frame: tk.Frame -> the frame that we're putting widgets in
+    style: ttk.Style -> the style class we're working with
+    do_post: bool = True -> whether or not to post to the Slack channel
+    """
+    
+    button_1 = 16
+    button_2 = 20
+    button_3 = 21
+    button_4 = 22
+
+    # initial GPIO setup
+    GPIO.setmode(GPIO.BCM)
+
+    # add pull-up resistory to make readings more stable
+    GPIO.setup(button_1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(button_2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+    # add an event listener to each button (falling means being pressed activately)
+    GPIO.add_event_detect(button_1,
+                          GPIO.FALLING,
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          bouncetime=200)
+    GPIO.add_event_detect(button_2,
+                          GPIO.FALLING,
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          bouncetime=200)
+    GPIO.add_event_detect(button_3,
+                          GPIO.FALLING,
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          bouncetime=200)
+    GPIO.add_event_detect(button_4,
+                          GPIO.FALLING,
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          bouncetime=200)
 
 def display_gui(fullscreen: bool = True) -> None:
     """
@@ -22,6 +67,7 @@ def display_gui(fullscreen: bool = True) -> None:
     fullscreen: bool = True -> whether to start the app in full screen
     """
     escape_display_period_ms = 5000
+    do_post = False
 
     # make a window
     root = tk.Tk()
@@ -41,9 +87,10 @@ def display_gui(fullscreen: bool = True) -> None:
     style = ttk.Style()
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
 
-    # bind keys
+    # bind keys/buttons
     root.bind("<Escape>", lambda event: root.destroy())
-    root.bind("<Button-1>", lambda event: handle_interaction(root, display_frame, style, do_post=False))
+    root.bind("<Button-1>", lambda event: handle_interaction(root, display_frame, style, do_post=do_post))
+    setup_gpio(root, display_frame, style, do_post=do_post)
 
     # set up the actual items in the display
     escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
@@ -57,6 +104,8 @@ def display_gui(fullscreen: bool = True) -> None:
 
     # run
     root.mainloop()
+
+    GPIO.cleanup() # finally, clean everything up
 
 def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
