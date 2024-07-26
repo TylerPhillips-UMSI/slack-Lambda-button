@@ -9,12 +9,15 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
+import time
+
 import lambda_function as lf
 
 import RPi.GPIO as GPIO # for Argon interactions
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
+PRESS_START = None # for long button presses
 
 def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True) -> None:
     """
@@ -41,71 +44,44 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
     GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-    # add an event listener to each button (falling means being pressed activaly)
+    def set_press_start(t):
+        PRESS_START = t
+
+    # add a falling event listener to start tracking time
     GPIO.add_event_detect(button_1,
                           GPIO.FALLING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          callback=lambda channel: set_press_start(time.time()), 
                           bouncetime=200)
     GPIO.add_event_detect(button_2,
                           GPIO.FALLING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          callback=lambda channel: set_press_start(time.time()), 
                           bouncetime=200)
     GPIO.add_event_detect(button_3,
                           GPIO.FALLING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          callback=lambda channel: set_press_start(time.time()), 
                           bouncetime=200)
     GPIO.add_event_detect(button_4,
                           GPIO.FALLING,
+                          callback=lambda channel: set_press_start(time.time()), 
+                          bouncetime=200)
+    
+    # add a rising event listener to each button (rising because we want the event to trigger when the button is released)
+    GPIO.add_event_detect(button_1,
+                          GPIO.RISING,
                           callback=lambda channel: handle_interaction(root, frame, style, do_post), 
                           bouncetime=200)
-
-def display_gui(fullscreen: bool = True) -> None:
-    """
-    Displays the TKinter GUI
-    
-    Params:
-    fullscreen: bool = True -> whether to start the app in full screen
-    """
-    escape_display_period_ms = 5000
-    do_post = False
-
-    # make a window
-    root = tk.Tk()
-
-    # set display attributes/config
-    root.attributes("-fullscreen", fullscreen)
-    root.configure(bg=BLUE)
-    root.title("Slack Lambda Button")
-
-    display_frame = tk.Frame(root, bg=BLUE)
-    display_frame.pack(fill=tk.BOTH, expand=True)
-
-    # load oswald, a U of M standard font
-    oswald_32 = tkFont.Font(family="Oswald", size=32)
-
-    # configure style
-    style = ttk.Style()
-    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
-
-    # bind keys/buttons
-    root.bind("<Escape>", lambda event: root.destroy())
-    root.bind("<Button-1>", lambda event: handle_interaction(root, display_frame, style, do_post=do_post))
-    setup_gpio(root, display_frame, style, do_post=do_post)
-
-    # set up the actual items in the display
-    escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
-    escape_label.place(relx=0.99, rely=0.99, anchor="se")
-
-    display_main(display_frame, style)
-
-    # Fade the escape label out
-    root.after(escape_display_period_ms, fade_label, root, 
-               escape_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
-
-    # run
-    root.mainloop()
-
-    GPIO.cleanup() # finally, clean everything up
+    GPIO.add_event_detect(button_2,
+                          GPIO.RISING,
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          bouncetime=200)
+    GPIO.add_event_detect(button_3,
+                          GPIO.RISING,
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          bouncetime=200)
+    GPIO.add_event_detect(button_4,
+                          GPIO.RISING,
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          bouncetime=200)
 
 def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
@@ -153,7 +129,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: 
 
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
-    root.after(20, lambda: lf.handle_interaction(do_post))
+    root.after(20, lambda: lf.handle_interaction(do_post. time.time() - PRESS_START))
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style) -> None:
     """
@@ -254,6 +230,54 @@ def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tup
         root.after(fade_duration_ms // fps, fade_label, root,
                    label, start_color, end_color, current_step,
                    fade_duration_ms)
+
+def display_gui(fullscreen: bool = True) -> None:
+    """
+    Displays the TKinter GUI
+    
+    Params:
+    fullscreen: bool = True -> whether to start the app in full screen
+    """
+    escape_display_period_ms = 5000
+    do_post = False
+
+    # make a window
+    root = tk.Tk()
+
+    # set display attributes/config
+    root.attributes("-fullscreen", fullscreen)
+    root.configure(bg=BLUE)
+    root.title("Slack Lambda Button")
+
+    display_frame = tk.Frame(root, bg=BLUE)
+    display_frame.pack(fill=tk.BOTH, expand=True)
+
+    # load oswald, a U of M standard font
+    oswald_32 = tkFont.Font(family="Oswald", size=32)
+
+    # configure style
+    style = ttk.Style()
+    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
+
+    # bind keys/buttons
+    root.bind("<Escape>", lambda event: root.destroy())
+    root.bind("<Button-1>", lambda event: handle_interaction(root, display_frame, style, do_post=do_post))
+    setup_gpio(root, display_frame, style, do_post=do_post)
+
+    # set up the actual items in the display
+    escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
+    escape_label.place(relx=0.99, rely=0.99, anchor="se")
+
+    display_main(display_frame, style)
+
+    # Fade the escape label out
+    root.after(escape_display_period_ms, fade_label, root, 
+               escape_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
+
+    # run
+    root.mainloop()
+
+    GPIO.cleanup() # finally, clean everything up
 
 if __name__ == "__main__":
     display_gui(fullscreen = True)

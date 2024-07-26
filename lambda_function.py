@@ -202,15 +202,18 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post:
 
     return {'statusCode': 200, 'body': slack_response}
 
-def handle_interaction(do_post: bool = True) -> None:
+def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
     Params:
     do_post: bool = True -> whether to post to the Slack or just log in console, for debug
+    press_length: int = 0 -> how long was the button pressed?
     """
 
     # aws_client = init_aws()
+
+    press_type = "LONG" if press_length > 500 else "SINGLE"
 
     # set up Google Sheets and grab the config
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
@@ -219,7 +222,8 @@ def handle_interaction(do_post: bool = True) -> None:
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
 
     # send a message to Slack or the console
-    handle_lambda(device_config, press_type = "SINGLE", do_post = do_post)
+    handle_lambda(device_config, press_type=press_type, do_post=do_post)
 
 if __name__ == "__main__":
-    handle_interaction(False)
+    # testing
+    handle_interaction(False, press_length = 634)
