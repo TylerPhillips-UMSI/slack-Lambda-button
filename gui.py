@@ -41,7 +41,7 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
     GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-    # add an event listener to each button (falling means being pressed activately)
+    # add an event listener to each button (falling means being pressed activaly)
     GPIO.add_event_detect(button_1,
                           GPIO.FALLING,
                           callback=lambda channel: handle_interaction(root, frame, style, do_post), 
