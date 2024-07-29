@@ -54,33 +54,33 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
     # add a falling event listener to start tracking time
     GPIO.add_event_detect(button_1,
                           GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()), 
+                          callback=lambda channel: set_press_start(time.time()),
                           bouncetime=200)
     GPIO.add_event_detect(button_2,
                           GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()), 
+                          callback=lambda channel: set_press_start(time.time()),
                           bouncetime=200)
     GPIO.add_event_detect(button_3,
                           GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()), 
+                          callback=lambda channel: set_press_start(time.time()),
                           bouncetime=200)
     GPIO.add_event_detect(button_4,
                           GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()), 
+                          callback=lambda channel: set_press_start(time.time()),
                           bouncetime=200)
     
     # add a rising event listener to each button (rising because we want the event to trigger when the button is released)
     GPIO.add_event_detect(button_1,
                           GPIO.RISING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post),
                           bouncetime=200)
     GPIO.add_event_detect(button_2,
                           GPIO.RISING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post),
                           bouncetime=200)
     GPIO.add_event_detect(button_3,
                           GPIO.RISING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
+                          callback=lambda channel: handle_interaction(root, frame, style, do_post),
                           bouncetime=200)
     GPIO.add_event_detect(button_4,
                           GPIO.RISING,
@@ -98,7 +98,7 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
 
     oswald_48 = tkFont.Font(family="Oswald", size=48)
     oswald_64 = tkFont.Font(family="Oswald", size=64)
-    
+
     style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
     style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_48)
 
@@ -111,10 +111,12 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
     help_label.place(relx=0.5, rely=0.6, anchor="center")
 
-    instruction_label = ttk.Label(root, text="Tap the screen or press a button!", style="Instructions.TLabel")
+    instruction_label = ttk.Label(root, text="Tap the screen or press a button!", 
+                                  style="Instructions.TLabel")
     instruction_label.place(relx=0.5, rely=0.7, anchor="center")
 
-def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True) -> None:
+def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, 
+                       do_post: bool = True) -> None:
     """
     Handles the Lambda function and switching to the post-interaction display
 
@@ -133,7 +135,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: 
 
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
-    root.after(20, lambda: lf.handle_interaction(do_post. time.time() - PRESS_START))
+    root.after(20, lambda: lf.handle_interaction(do_post, (time.time() - PRESS_START) if PRESS_START is not None else 0))
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style) -> None:
     """
@@ -192,19 +194,19 @@ def hex_to_rgb(hex_: str) -> tuple:
     return tuple(int(hex_[i:i+2], 16) for i in (0, 2, 4))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def interpolate(start_color: tuple, end_color: tuple, time: int) -> tuple:
+def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
     """
     Interpolates between two colors based on time
 
     Params:
     start_color: tuple -> the color to start with
     end_color: tuple -> the color to end with
-    time: int -> the amount of time that has passed
+    t: int -> the amount of time that has passed
 
     Returns:
     An interpolated tuple somewhere between our two colors
     """
-    return tuple(int(a + (b - a) * time) for a, b in zip(start_color, end_color))
+    return tuple(int(a + (b - a) * t) for a, b in zip(start_color, end_color))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
 def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple, current_step: int,
@@ -264,8 +266,8 @@ def display_gui(fullscreen: bool = True) -> None:
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
 
     # bind keys/buttons
-    root.bind("<Escape>", lambda event: root.destroy())
-    root.bind("<Button-1>", lambda event: handle_interaction(root, display_frame, style, do_post=do_post))
+    root.bind("<Escape>", root.destroy)
+    root.bind("<Button-1>", lambda: handle_interaction(root, display_frame, style, do_post=do_post))
     if is_raspberry_pi:
         setup_gpio(root, display_frame, style, do_post=do_post)
 
@@ -276,7 +278,7 @@ def display_gui(fullscreen: bool = True) -> None:
     display_main(display_frame, style)
 
     # Fade the escape label out
-    root.after(escape_display_period_ms, fade_label, root, 
+    root.after(escape_display_period_ms, fade_label, root,
                escape_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
 
     # run
