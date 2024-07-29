@@ -14,20 +14,30 @@ import sheets
 
 from typing import List
 
-# Read the configuration file
+# Read the configuration files
 try:
     with open('config.json', 'r', encoding="utf8") as file:
         CONFIG = json.load(file)
+except json.JSONDecodeError as e:
+    print(e)
+except FileNotFoundError as e:
+    with open("config.json", "x", encoding="utf8") as file:
+        print("config.json not found, creating it for you...")
+
+        defaults = {"webhook_url": "", "button_config": {"device_id": ""}}
+        json.dump(defaults, file)
+try:
     with open("aws.json", "r", encoding="utf8") as file:
         AWS = json.load(file)
 except json.JSONDecodeError as e:
-    with open('config.json', 'r', encoding="utf8") as file:
-        print(f"Error decoding JSON: {e}")
-        file_content = file.read()
-        lines = file_content.split('\n')
-        if 0 <= e.lineno < len(lines):
-            print(f"Problematic line: {lines[e.lineno]}")
-    raise
+    print(e)
+except FileNotFoundError as e:
+    with open("aws.json", "x", encoding="utf8") as file:
+        print("aws.json not found, creating it for you...")
+
+        defaults = {"AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""}
+        json.dump(defaults, file)
+    exit()
 
 WEBHOOK_URL = CONFIG["webhook_url"]
 BUTTON_CONFIG = CONFIG["button_config"]

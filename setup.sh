@@ -1,12 +1,12 @@
-echo -e "\e[32mStarting setup for slack-Lambda-button...\e[39m"
+echo -e "\e[32mStarting setup for slack-Lambda-button for Linux...\e[39m"
 
-# Python Requests library
+# Install Python Requests library
 pip install --upgrade requests
 
-# Google Sheets/Docs stuff
+# Install Google Sheets/Docs libraries
 pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-# boto3
+# Install boto3
 pip install --upgrade boto3
 
 # force upgrade to lgpio, which doesn't error out for this project

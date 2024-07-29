@@ -9,15 +9,19 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
+import sys
 import time
 
 import lambda_function as lf
 
-import RPi.GPIO as GPIO # for Argon interactions
-
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
 PRESS_START = None # for long button presses
+
+is_raspberry_pi = not sys.platform.startswith("win32")
+
+if is_raspberry_pi:
+    import RPi.GPIO as GPIO # for Argon interactions
 
 def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True) -> None:
     """
@@ -262,7 +266,8 @@ def display_gui(fullscreen: bool = True) -> None:
     # bind keys/buttons
     root.bind("<Escape>", lambda event: root.destroy())
     root.bind("<Button-1>", lambda event: handle_interaction(root, display_frame, style, do_post=do_post))
-    setup_gpio(root, display_frame, style, do_post=do_post)
+    if is_raspberry_pi:
+        setup_gpio(root, display_frame, style, do_post=do_post)
 
     # set up the actual items in the display
     escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")

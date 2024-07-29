@@ -152,7 +152,7 @@ def open_config() -> TextIO:
 			}
 
 			json.dump(config_contents, config_file)
-		print("Config did not exist, one has been created for you. Please fill it out before running again.")
+		print("config/google.json did not exist, one has been created for you. Please fill out the \"title\" field before running again.")
 
 		exit(1)
 	else:
