@@ -223,7 +223,7 @@ def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
 
     # aws_client = init_aws()
 
-    press_type = "LONG" if press_length > 500 else "SINGLE"
+    press_type = "LONG" if press_length > 200 else "SINGLE"
 
     # set up Google Sheets and grab the config
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()

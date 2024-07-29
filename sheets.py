@@ -208,7 +208,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 	)
 
 	values = result.get("values", [])
-	last_row = len(values)
+	last_row = len(values) + 1
 
 	return last_row # Return the number of non-empty rows
 		
@@ -225,7 +225,7 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 	result -> the result of the execution
 	"""
 
-	next_row = find_first_empty_row(sheets_service, spreadsheet_id) + 1
+	next_row = find_first_empty_row(sheets_service, spreadsheet_id)
 
 	final_letter = len(cells) - 1
 	final_letter += ord('A')
