@@ -279,7 +279,10 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 		.execute()
 	)
 
-	return result["values"]
+	try:
+		return result["values"]
+	except KeyError: # if the region is empty, there's no values
+		return []
 
 def setup_sheets():
 	"""

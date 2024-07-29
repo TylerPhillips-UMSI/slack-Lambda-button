@@ -74,7 +74,11 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
                             first_letter = "B", last_letter = "B")
 
     device_id_list = [id[0].strip() if id != [] else "" for id in device_id_list]
-    device_index = device_id_list.index(device_id) + 2 # add 2 because skipped first row + Google Sheets is 1 indexed
+    try:
+        device_index = device_id_list.index(device_id) + 2 # add 2 because skipped first row + Google Sheets is 1 indexed
+    except ValueError:
+        print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
+        exit()
 
     device_info = sheets.get_region(sheets_service, spreadsheet_id,
                                     first_row = device_index, last_row = device_index,
