@@ -230,7 +230,7 @@ def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tup
     current_step += 1
 
     new_color = interpolate(start_color, end_color, t)
-    label.configure(foreground="#%02x%02x%02x" % new_color)
+    label.configure(foreground=f"#{new_color[0]:02x}{new_color[1]:02x}{new_color[2]:02x}"
 
     if current_step <= fps:
         root.after(fade_duration_ms // fps, fade_label, root,
