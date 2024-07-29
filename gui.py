@@ -196,7 +196,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         timeout_label.place(relx=0.99, rely=0.99, anchor="se")
 
         # schedule countdown until seconds_left is 1
-        if seconds_left > 1:
+        if seconds_left > 0:
             root.after(1000, countdown)
         else:
             timeout_label.place_forget()
@@ -293,6 +293,7 @@ def display_gui(fullscreen: bool = True) -> None:
 
     # make a window
     root = tk.Tk()
+    root.iconbitmap("images/lambda.ico")
 
     # set display attributes/config
     root.attributes("-fullscreen", fullscreen)

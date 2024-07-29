@@ -153,6 +153,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     device_message = device_config[4]
     # device_alt_webhook = None
     device_rate_limit = int(device_config[7])
+    device_webhook = device_config[8]
 
     # get the time but nice looking
     fancy_time = get_datetime(True)
@@ -160,7 +161,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     # handle timestamp, check for rate limit
     last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
     current_timestamp = time.time()
-    
+
     if current_timestamp - last_timestamp < device_rate_limit:
         print("Rate limit applied. Message not sent.")
         return {"statusCode": 429, "body": "Rate limit applied."}
@@ -168,17 +169,18 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     # handle empty message/location
     final_message = device_message if device_message is not None and device_message != "" else "Unknown button pressed."
     final_location = device_location if device_location is not None and device_location != "" else "Unknown Location"
+    final_webhook = device_webhook if device_webhook is not None and device_webhook != "" else WEBHOOK_URL
 
     # handle long button presses by sending a test message
     if press_type == "LONG":
         final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
-    print(f"Using Webhook: {WEBHOOK_URL}")
+    print(f"Using Webhook: {final_webhook}")
 
     # sort of mocking, I guess? I circumvent API calls, but it's not REALLY mocking is it?
     if do_post:
-        slack_response = post_to_slack(final_message, WEBHOOK_URL)
+        slack_response = post_to_slack(final_message, final_webhook)
         print(f"Received response from Slack: {slack_response}")
 
         LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
