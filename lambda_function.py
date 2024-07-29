@@ -15,6 +15,8 @@ import requests
 import boto3
 import sheets
 
+is_raspberry_pi = not sys.platform.startswith("win32")
+
 # Read the configuration files
 try:
     with open('config.json', 'r', encoding="utf8") as file:
@@ -113,7 +115,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     formatted_time = None
     try:
-        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit.json", 
+        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit.json",
                                 timeout=5)
         response_data = response.json()
         iso_datetime = response_data["datetime"]
@@ -121,7 +123,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
         formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
 
         # May be useful for keeping system time up-to-date throughout runtime
-        if update_system_time:
+        if update_system_time and is_raspberry_pi:
             date_command = f"sudo date -s {iso_datetime}"
             date_command = date_command.split()
             check_call(date_command, stdout=DEVNULL, stderr=STDOUT)
@@ -132,7 +134,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     return formatted_time
 
-def handle_lambda(device_config: List[str], press_type: str = "SINGLE", 
+def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
                   do_post: bool = True) -> dict:
     """
     Handle the Slack Lambda function

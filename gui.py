@@ -282,7 +282,8 @@ def display_gui(fullscreen: bool = True) -> None:
     # run
     root.mainloop()
 
-    GPIO.cleanup() # finally, clean everything up
+    if is_raspberry_pi:
+        GPIO.cleanup() # finally, clean everything up
 
 if __name__ == "__main__":
     display_gui(fullscreen = True)
