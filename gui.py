@@ -115,7 +115,7 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
                                   style="Instructions.TLabel")
     instruction_label.place(relx=0.5, rely=0.7, anchor="center")
 
-def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, 
+def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                        do_post: bool = True) -> None:
     """
     Handles the Lambda function and switching to the post-interaction display
@@ -153,11 +153,14 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     do_post: bool -> whether to post to Slack
     """
 
-    oswald_96 = tkFont.Font(family="Oswald", size=96)
-    oswald_80 = tkFont.Font(family="Oswald", size=80)
+    # Countdown
+    countdown_length_sec = 180
 
-    style.configure("Received.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96, weight="bold")
-    style.configure("Waiting.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80, weight="bold")
+    oswald_96 = tkFont.Font(family="Oswald", size=96, weight="bold")
+    oswald_80 = tkFont.Font(family="Oswald", size=80, weight="bold")
+
+    style.configure("Received.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
+    style.configure("Waiting.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
 
     received_label = ttk.Label(frame, text="Help is on the way!", style="Received.TLabel")
     received_label.place(relx=0.5, rely=0.40, anchor="center")
@@ -168,9 +171,37 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     root.update_idletasks() # gets stuff to load all at once
 
-    three_min = 3 * 60 * 1000 # minutes * seconds * ms
+    three_min = countdown_length_sec * 1000 # seconds * ms
 
     root.after(three_min, lambda: revert_to_main(root, frame, style, do_post))
+
+    oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
+    style.configure("Timeout.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
+
+    seconds_left = countdown_length_sec
+    timeout_label = ttk.Label(frame, text=f"Request times out in {seconds_left} seconds",
+                              style="Timeout.TLabel")
+    timeout_label.place(relx=0.99, rely=0.99, anchor="se")
+
+    # do a timeout countdown
+    def countdown():
+        nonlocal seconds_left # allows us to access seconds_left in here
+
+        # clear the label and decrement seconds_left
+        timeout_label.place_forget()
+        seconds_left -= 1
+
+        # update and place the label
+        timeout_label.configure(text=f"Request times out in {seconds_left} seconds")
+        timeout_label.place(relx=0.99, rely=0.99, anchor="se")
+
+        # schedule countdown until seconds_left is 1
+        if seconds_left > 1:
+            root.after(1000, countdown)
+        else:
+            timeout_label.place_forget()
+
+    root.after(1000, countdown)
 
 def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """

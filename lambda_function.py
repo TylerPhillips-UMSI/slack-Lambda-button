@@ -19,7 +19,7 @@ is_raspberry_pi = not sys.platform.startswith("win32")
 
 # Read the configuration files
 try:
-    with open('config.json', 'r', encoding="utf8") as file:
+    with open("config.json", "r", encoding="utf8") as file:
         CONFIG = json.load(file)
 except json.JSONDecodeError as e:
     print(e)
@@ -53,9 +53,9 @@ def init_aws() -> boto3.client:
     Initializes boto3/AWS
     """
 
-    client = boto3.client('iot-data', 
+    client = boto3.client("iot-data", 
                           aws_access_key_id=AWS["AWS_ACCESS_KEY_ID"],
-                          aws_secret_access_key=AWS['AWS_SECRET_ACCESS_KEY'], region_name="Ohio")
+                          aws_secret_access_key=AWS["AWS_SECRET_ACCESS_KEY"], region_name="Ohio")
 
     return client
 
@@ -78,14 +78,15 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
 
     device_id_list = [id[0].strip() if id != [] else "" for id in device_id_list]
     try:
-        device_index = device_id_list.index(device_id) + 2 # add 2 because skip first row + Google Sheets is 1 indexed
+        # add 2 because skip first row + Google Sheets is 1 indexed
+        device_index = device_id_list.index(device_id) + 2
     except ValueError:
         print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
         sys.exit()
 
     device_info = sheets.get_region(sheets_service, spreadsheet_id,
                                     first_row = device_index, last_row = device_index,
-                                    first_letter = "A", last_letter = "G")[0]
+                                    first_letter = "A", last_letter = "I")[0]
 
     return device_info
 
@@ -98,7 +99,7 @@ def post_to_slack(message, webhook_url):
     webhook_url -> the Slack webhook to use (per-channel?)
     """
 
-    payload = {'text': message}
+    payload = {"text": message}
     response = requests.post(webhook_url, json=payload, timeout=10) # 10 second timeout
     return response.text
 
@@ -151,6 +152,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     # device_function = device_config[5]
     device_message = device_config[4]
     # device_alt_webhook = None
+    device_rate_limit = int(device_config[7])
 
     # get the time but nice looking
     fancy_time = get_datetime(True)
@@ -158,9 +160,10 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     # handle timestamp, check for rate limit
     last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
     current_timestamp = time.time()
-    if current_timestamp - last_timestamp < 60:
-        print('Rate limit applied. Message not sent.')
-        return {'statusCode': 429, 'body': 'Rate limit applied.'}
+    
+    if current_timestamp - last_timestamp < device_rate_limit:
+        print("Rate limit applied. Message not sent.")
+        return {"statusCode": 429, "body": "Rate limit applied."}
 
     # handle empty message/location
     final_message = device_message if device_message is not None and device_message != "" else "Unknown button pressed."
