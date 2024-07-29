@@ -183,7 +183,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
         slack_response = "ok"
         print(f"\nMESSAGE\n--------\n{final_message}")
 
-    return {'statusCode': 200, 'body': slack_response}
+    return {"statusCode": 200, "body": slack_response}
 
 def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
     """

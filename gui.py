@@ -96,13 +96,13 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     style: ttk.Style -> the style manager for our window
     """
 
-    oswald_48 = tkFont.Font(family="Oswald", size=48)
-    oswald_64 = tkFont.Font(family="Oswald", size=64)
+    oswald_48 = tkFont.Font(family="Oswald", size=48, weight="bold")
+    oswald_64 = tkFont.Font(family="Oswald", size=64, weight="bold")
 
     style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
     style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_48)
 
-    dude_img = tk.PhotoImage(file='images/duderstadt-logo.png')
+    dude_img = tk.PhotoImage(file="images/duderstadt-logo.png")
     dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
     dude_img_label.image = dude_img # keep a reference so it's still in memory
     dude_img_label.place(relx=0.5, rely=0.4, anchor="center")
@@ -131,13 +131,18 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     for widget in frame.winfo_children():
         widget.place_forget()
 
-    display_post_interaction(root, frame, style)
+    # clear left click binding
+    root.unbind("<Button-1>")
+
+    display_post_interaction(root, frame, style, do_post)
 
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
-    root.after(20, lambda: lf.handle_interaction(do_post, (time.time() - PRESS_START) if PRESS_START is not None else 0))
+    root.after(20, lambda:
+               lf.handle_interaction(do_post,
+               (time.time() - PRESS_START) if PRESS_START is not None else 0))
 
-def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style) -> None:
+def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
     Displays the post interaction instructions
 
@@ -145,37 +150,45 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style) -> 
     root: tk.Tk -> the root window
     frame: tk.Frame -> the frame
     style: ttk.Style -> the style manager for our window
+    do_post: bool -> whether to post to Slack
     """
 
     oswald_96 = tkFont.Font(family="Oswald", size=96)
     oswald_80 = tkFont.Font(family="Oswald", size=80)
 
-    style.configure("Received.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
-    style.configure("Waiting.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
+    style.configure("Received.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96, weight="bold")
+    style.configure("Waiting.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80, weight="bold")
 
     received_label = ttk.Label(frame, text="Help is on the way!", style="Received.TLabel")
     received_label.place(relx=0.5, rely=0.40, anchor="center")
 
-    waiting_label = ttk.Label(frame, text="Updates will be provided on this screen.", style="Waiting.TLabel")
+    waiting_label = ttk.Label(frame, text="Updates will be provided on this screen.",
+                              style="Waiting.TLabel")
     waiting_label.place(relx=0.5, rely=0.60, anchor="center")
 
     root.update_idletasks() # gets stuff to load all at once
 
     three_min = 3 * 60 * 1000 # minutes * seconds * ms
 
-    root.after(three_min, lambda: revert_to_main(frame, style))
+    root.after(three_min, lambda: revert_to_main(root, frame, style, do_post))
 
-def revert_to_main(frame: tk.Frame, style: ttk.Style) -> None:
+def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
     Reverts from another frame to the main display
 
     Params:
+    root: tk.Tk -> the root window we're working with
     frame: tk.Frame -> the frame we're working with
     style: ttk.Style -> the style we'd like to hold onto
+    do_post: bool -> whether to post to Slack
     """
 
     for widget in frame.winfo_children():
         widget.place_forget()
+
+    # restore left click binding
+    root.bind("<Button-1>", lambda event:
+                handle_interaction(root, frame, style, do_post=do_post))
 
     display_main(frame, style)
 
@@ -209,8 +222,8 @@ def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
     return tuple(int(a + (b - a) * t) for a, b in zip(start_color, end_color))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple, current_step: int,
-               fade_duration_ms: int) -> None:
+def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple, 
+               current_step: int, fade_duration_ms: int) -> None:
     """
     A recursive function that fades a label from one color to another
 
@@ -259,15 +272,17 @@ def display_gui(fullscreen: bool = True) -> None:
     display_frame.pack(fill=tk.BOTH, expand=True)
 
     # load oswald, a U of M standard font
-    oswald_32 = tkFont.Font(family="Oswald", size=32)
+    oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
 
     # configure style
     style = ttk.Style()
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
 
     # bind keys/buttons
-    root.bind("<Escape>", root.destroy)
-    root.bind("<Button-1>", lambda: handle_interaction(root, display_frame, style, do_post=do_post))
+    root.bind("<Escape>", lambda event: root.destroy())
+    root.bind("<Button-1>", lambda event: 
+              handle_interaction(root, display_frame, style, do_post=do_post))
+
     if is_raspberry_pi:
         setup_gpio(root, display_frame, style, do_post=do_post)
 
