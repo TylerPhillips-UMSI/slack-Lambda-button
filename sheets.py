@@ -152,7 +152,8 @@ def open_config() -> TextIO:
 			}
 
 			json.dump(config_contents, config_file)
-		print("config/google.json did not exist, one has been created for you. Please fill out the \"title\" field before running again.")
+		print("""config/google.json did not exist, one has been created for you. Please at least fill out the \"title\" field before running again. 
+			  To use an existing spreadsheet, put the \"id\" field in as well from the Google Sheets URL.""")
 
 		exit(1)
 	else:

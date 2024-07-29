@@ -176,15 +176,14 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
 def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post: bool = True) -> dict:
     device_id = device_config[1]
-    device_mac = device_config[2]
+    # device_mac = device_config[2]
     device_location = device_config[3]
-    device_function = device_config[5]
+    # device_function = device_config[5]
     device_message = device_config[4]
-    device_alt_webhook = None
+    # device_alt_webhook = None
 
-    # get the time but nice looking + print it :)
+    # get the time but nice looking
     fancy_time = get_datetime(True)
-    print(f"[{fancy_time}]")
 
     # handle timestamp, check for rate limit
     last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
@@ -201,7 +200,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post:
     if press_type == "LONG":
         final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
 
-    print(f"Retrieved message: {final_message}")
+    print(f"\nINFO\n--------\nRetrieved message: {final_message}")
     print(f"Using Webhook: {WEBHOOK_URL}")
 
     # sort of mocking, I guess? I circumvent API calls, but it's not REALLY mocking is it?
@@ -212,7 +211,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post:
         LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
     else:
         slack_response = "ok"
-        print(f"{final_message}")
+        print(f"\nMESSAGE\n--------\n{final_message}")
 
     return {'statusCode': 200, 'body': slack_response}
 
