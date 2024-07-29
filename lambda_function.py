@@ -3,16 +3,17 @@ The Slack Lambda Button module for the Duderstadt Center
 """
 
 import json
+import sys
 import time
 
-import requests
+from typing import List
+
 from datetime import datetime
 from subprocess import DEVNULL, STDOUT, check_call
+import requests
 
 import boto3
 import sheets
-
-from typing import List
 
 # Read the configuration files
 try:
@@ -75,10 +76,10 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
 
     device_id_list = [id[0].strip() if id != [] else "" for id in device_id_list]
     try:
-        device_index = device_id_list.index(device_id) + 2 # add 2 because skipped first row + Google Sheets is 1 indexed
+        device_index = device_id_list.index(device_id) + 2 # add 2 because skip first row + Google Sheets is 1 indexed
     except ValueError:
         print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
-        exit()
+        sys.exit()
 
     device_info = sheets.get_region(sheets_service, spreadsheet_id,
                                     first_row = device_index, last_row = device_index,
@@ -94,54 +95,10 @@ def post_to_slack(message, webhook_url):
     message -> the message to send
     webhook_url -> the Slack webhook to use (per-channel?)
     """
-    
+
     payload = {'text': message}
-    response = requests.post(webhook_url, json=payload)
+    response = requests.post(webhook_url, json=payload, timeout=10) # 10 second timeout
     return response.text
-
-
-def lambda_handler(event, context) -> dict:
-    """
-    The lambda handler originally written by Kylie-Grace
-    """
-
-    print(event)
-    device_info = event.get('deviceInfo', {})
-    device_id = device_info.get('deviceId', '').strip()
-    click_type = event['deviceEvent']['buttonClicked']['clickType']
-    remaining_life = device_info.get('remainingLife', '')
-    reported_time = event['deviceEvent']['buttonClicked']['reportedTime']
-
-    print(f"Extracted deviceId: {device_id}, clickType: {click_type}")
-
-    if not device_id:
-        print('No deviceId provided.')
-        return {'statusCode': 400, 'body': 'No deviceId provided.'}
-
-    last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
-    current_timestamp = time.time()
-    if current_timestamp - last_timestamp < 60:
-        print('Rate limit applied. Message not sent.')
-        return {'statusCode': 429, 'body': 'Rate limit applied.'}
-
-    button_details = BUTTON_CONFIG.get(device_id, {})
-    message = button_details.get(click_type, f"Unknown button pressed.")
-    location = button_details.get("LOCATION", "Default Location")
-
-    if click_type == "LONG":
-        message = f"Testing button {location} {device_id} battery life is {remaining_life} at {reported_time}"
-
-    webhook_url = button_details.get("WEBHOOK_URL") or WEBHOOK_URL
-
-    print(f"Retrieved message: {message}")
-    print(f"Using Webhook: {webhook_url}")
-
-    slack_response = post_to_slack(message, webhook_url)
-    print(f"Received response from Slack: {slack_response}")
-
-    LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
-
-    return {'statusCode': 200, 'body': slack_response}
 
 def get_datetime(update_system_time: bool = False) -> str | None:
     """
@@ -156,7 +113,8 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     formatted_time = None
     try:
-        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit.json", timeout=5)
+        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit.json", 
+                                timeout=5)
         response_data = response.json()
         iso_datetime = response_data["datetime"]
         current_time = datetime.fromisoformat(iso_datetime)
@@ -171,10 +129,20 @@ def get_datetime(update_system_time: bool = False) -> str | None:
         # Fall back on system time, though potentially iffy
         now = datetime.now()
         formatted_time = now.strftime("%B %d, %Y %I:%M:%S %p")
-    finally:
-        return formatted_time
 
-def handle_lambda(device_config: List[str], press_type: str = "SINGLE", do_post: bool = True) -> dict:
+    return formatted_time
+
+def handle_lambda(device_config: List[str], press_type: str = "SINGLE", 
+                  do_post: bool = True) -> dict:
+    """
+    Handle the Slack Lambda function
+
+    Params:
+    device_config: List[str] -> the device configuration information
+    press_type: str = "SINGLE" -> the press type that we received (SINGLE or LONG)
+    do_post: bool = True -> whether to post the message to Slack
+    """
+
     device_id = device_config[1]
     # device_mac = device_config[2]
     device_location = device_config[3]
