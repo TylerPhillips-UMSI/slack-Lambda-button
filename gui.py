@@ -91,7 +91,7 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
     help_label.place(relx=0.5, rely=0.6, anchor="center")
 
-    instruction_label = ttk.Label(root, text="Tap the screen or press a button!", 
+    instruction_label = ttk.Label(root, text="Tap the screen or press a button!",
                                   style="Instructions.TLabel")
     instruction_label.place(relx=0.5, rely=0.7, anchor="center")
 
@@ -235,7 +235,7 @@ def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
     return tuple(int(a + (b - a) * t) for a, b in zip(start_color, end_color))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple, 
+def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple,
                current_step: int, fade_duration_ms: int) -> None:
     """
     A recursive function that fades a label from one color to another
@@ -292,6 +292,7 @@ def display_gui(fullscreen: bool = True) -> None:
     style = ttk.Style()
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
 
+    # event related
     def set_press_start():
         global PRESS_START
         PRESS_START = time.time()
