@@ -90,8 +90,8 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     style: ttk.Style -> the style manager for our window
     """
 
-    oswald_48 = tkFont.Font(family="Oswald", size=48, weight="bold")
-    oswald_64 = tkFont.Font(family="Oswald", size=64, weight="bold")
+    oswald_48 = tkFont.Font(family="Oswald", size=64, weight="bold")
+    oswald_64 = tkFont.Font(family="Oswald", size=80, weight="bold")
 
     style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
     style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_48)
@@ -99,15 +99,15 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     dude_img = tk.PhotoImage(file="images/duderstadt-logo.png")
     dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
     dude_img_label.image = dude_img # keep a reference so it's still in memory
-    dude_img_label.place(relx=0.5, rely=0.4, anchor="center")
+    dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
 
     # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
     help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
-    help_label.place(relx=0.5, rely=0.6, anchor="center")
+    help_label.place(relx=0.5, rely=0.56, anchor="center")
 
     instruction_label = ttk.Label(root, text="Tap the screen or press a button!",
                                   style="Instructions.TLabel")
-    instruction_label.place(relx=0.5, rely=0.7, anchor="center")
+    instruction_label.place(relx=0.5, rely=0.68, anchor="center")
 
 def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                        do_post: bool = True) -> None:
@@ -167,9 +167,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                               style="Timeout.TLabel")
     timeout_label.place(relx=0.99, rely=0.99, anchor="se")
     
-    countdown_label = ttk.Label(frame, text=f"{seconds_left}", 
+    countdown_label = ttk.Label(frame, text=f"{seconds_left}",
                                 style="Countdown.TLabel")
-    countdown_label.place(relx=0.912, rely=0.99, anchor="se")
+    countdown_label.place(relx=0.893, rely=0.961, anchor="center")
 
     # do a timeout countdown
     def countdown():
