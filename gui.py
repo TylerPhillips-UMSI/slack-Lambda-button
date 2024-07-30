@@ -67,6 +67,20 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
     for button in [button_1, button_2, button_3, button_4]:
         GPIO.add_event_detect(button, GPIO.BOTH, callback=handle_gpio_event, bouncetime=200)
 
+def bind_presses(root: tk.Frame, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
+    """
+    A simple function to bind or rebind button press-release events for TKinter
+    """
+
+    # sets the press_start time to be used to determine press length
+    def set_press_start():
+        global PRESS_START
+        PRESS_START = time.time()
+
+    root.bind("<ButtonPress-1>", lambda event: set_press_start())
+    root.bind("<ButtonRelease-1>", lambda event:
+              handle_interaction(root, frame, style, do_post=do_post))
+
 def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
@@ -113,7 +127,8 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         widget.place_forget()
 
     # clear left click binding
-    root.unbind("<Button-1>")
+    root.unbind("<ButtonPress-1>")
+    root.unbind("<ButtonRelease-1>")
 
     display_post_interaction(root, frame, style, do_post)
 
@@ -199,9 +214,8 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
     for widget in frame.winfo_children():
         widget.place_forget()
 
-    # restore left click binding
-    root.bind("<Button-1>", lambda event:
-                handle_interaction(root, frame, style, do_post=do_post))
+    # restore left click bindings
+    bind_presses(root, frame, style, do_post)
 
     display_main(frame, style)
 
@@ -292,16 +306,9 @@ def display_gui(fullscreen: bool = True) -> None:
     style = ttk.Style()
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
 
-    # event related
-    def set_press_start():
-        global PRESS_START
-        PRESS_START = time.time()
-
     # bind keys/buttons
     root.bind("<Escape>", lambda event: root.destroy())
-    root.bind("<ButtonPress-1>", lambda event: set_press_start())
-    root.bind("<ButtonRelease-1>", lambda event:
-              handle_interaction(root, display_frame, style, do_post=do_post))
+    bind_presses(root, display_frame, style, do_post)
 
     if is_raspberry_pi:
         setup_gpio(root, display_frame, style, do_post=do_post)
