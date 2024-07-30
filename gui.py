@@ -157,13 +157,19 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     oswald_96 = tkFont.Font(family="Oswald", size=96, weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=80, weight="bold")
     oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
+    monospace = tkFont.Font(family="Ubuntu", size=32, weight="bold")
 
     style.configure("Timeout.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
+    style.configure("Countdown.TLabel", foreground=MAIZE, background=BLUE, font=monospace)
 
     seconds_left = countdown_length_sec
-    timeout_label = ttk.Label(frame, text=f"Request times out in {seconds_left} seconds",
+    timeout_label = ttk.Label(frame, text="Request times out in        seconds",
                               style="Timeout.TLabel")
     timeout_label.place(relx=0.99, rely=0.99, anchor="se")
+    
+    countdown_label = ttk.Label(frame, text=f"{seconds_left}", 
+                                style="Countdown.TLabel")
+    countdown_label.place(relx=0.912, rely=0.99, anchor="se")
 
     # do a timeout countdown
     def countdown():
@@ -171,7 +177,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
         # decrement seconds left and set the label's text
         seconds_left -= 1
-        timeout_label.configure(text=f"Request times out in {seconds_left} seconds")
+        countdown_label.configure(text=f"{seconds_left}")
 
         # schedule countdown until seconds_left is 1
         if seconds_left > 0:
