@@ -27,11 +27,11 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
     """
     Sets up GPIO event listeners for the Argon case's 4 buttons
 
-    Params:
-    root: tk.Tk -> the root window
-    frame: tk.Frame -> the frame that we're putting widgets in
-    style: ttk.Style -> the style class we're working with
-    do_post: bool = True -> whether or not to post to the Slack channel
+    Args:
+        root (tk.Tk): the root window
+        frame (tk.Frame): the frame that we're putting widgets in
+        style (ttk.Style): the style class we're working with
+        do_post (bool): whether to post to the Slack channel
     """
     
     button_1 = 16
@@ -52,8 +52,8 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
         """
         Handles GPIO events for falling and rising edges.
 
-        Params:
-        channel: int -> the GPIO channel that triggered the event
+        Args:
+            channel (int): the GPIO channel that triggered the event
         """
         global PRESS_START
         if GPIO.input(channel) == GPIO.LOW:
@@ -67,9 +67,15 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
     for button in [button_1, button_2, button_3, button_4]:
         GPIO.add_event_detect(button, GPIO.BOTH, callback=handle_gpio_event, bouncetime=200)
 
-def bind_presses(root: tk.Frame, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
+def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
     A simple function to bind or rebind button press-release events for TKinter
+
+    Args:
+        root (tk.Tk): the root window
+        frame (tk.Frame): the frame we're currently working with
+        style (ttk.Style): the style manager for our window
+        do_post (bool): whether to post to Slack
     """
 
     # sets the press_start time to be used to determine press length
@@ -85,9 +91,9 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
 
-    Params:
-    root: tk.Tk -> the root window
-    style: ttk.Style -> the style manager for our window
+    Args:
+        root (tk.Tk): the root window
+        style (ttk.Style): the style manager for our window
     """
 
     oswald_48 = tkFont.Font(family="Oswald", size=64, weight="bold")
@@ -114,11 +120,11 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     """
     Handles the Lambda function and switching to the post-interaction display
 
-    Params:
-    root: tk.Tk -> the root window
-    frame: tk.Frame -> the frame that we're putting widgets in
-    style: ttk.Style -> the style class we're working with
-    do_post: bool = True -> whether or not to post to the Slack channel
+    Args:
+        root (tk.Tk): the root window
+        frame (tk.Frame): the frame that we're putting widgets in
+        style (ttk.Style): the style manager for our window
+        do_post (bool): whether or not to post to the Slack channel
     """
     global PRESS_START
 
@@ -144,11 +150,11 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
     Displays the post interaction instructions
 
-    Params:
-    root: tk.Tk -> the root window
-    frame: tk.Frame -> the frame
-    style: ttk.Style -> the style manager for our window
-    do_post: bool -> whether to post to Slack
+    Args:
+        root (tk.Tk): the root window
+        frame (tk.Frame) the frame
+        style (ttk.Style): the style manager for our window
+        do_post (bool): whether to post to Slack
     """
 
     # Countdown
@@ -206,11 +212,11 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
     """
     Reverts from another frame to the main display
 
-    Params:
-    root: tk.Tk -> the root window we're working with
-    frame: tk.Frame -> the frame we're working with
-    style: ttk.Style -> the style we'd like to hold onto
-    do_post: bool -> whether to post to Slack
+    Args:
+        root (tk.Tk): the root window we're working with
+        frame (tk.Frame): the frame we're working with
+        style (ttk.Style): the style we'd like to hold onto
+        do_post (bool) whether to post to Slack
     """
 
     for widget in frame.winfo_children():
@@ -221,32 +227,32 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
 
     display_main(frame, style)
 
-def hex_to_rgb(hex_: str) -> tuple:
+def hex_to_rgb(hex_str: str) -> tuple:
     """
     Converts a hex string (#000000) to an RGB tuple ((0, 0, 0))
 
-    Params:
-    hex_: str -> the hex string to convert
+    Args:
+        hex_str (str): the hex string to convert
 
     Returns:
-    The tuple our hex converts to
+        The tuple our hex converts to
     """
 
     hex_ = hex_.lstrip("#")
-    return tuple(int(hex_[i:i+2], 16) for i in (0, 2, 4))
+    return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
 def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
     """
     Interpolates between two colors based on time
 
-    Params:
-    start_color: tuple -> the color to start with
-    end_color: tuple -> the color to end with
-    t: int -> the amount of time that has passed
+    Args:
+        start_color (tuple) the color to start with
+        end_color (tuple): the color to end with
+        t (int): the amount of time that has passed
 
     Returns:
-    An interpolated tuple somewhere between our two colors
+        An interpolated tuple somewhere between our two colors
     """
     return tuple(int(a + (b - a) * t) for a, b in zip(start_color, end_color))
 
@@ -256,13 +262,13 @@ def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tup
     """
     A recursive function that fades a label from one color to another
 
-    Params:
-    root: Tk -> the root of the window
-    label: ttk.Label -> the label to fade
-    start_color: tuple -> the start color, as an RGB tuple
-    end_color: tuple -> the end color, as an RGB tuple
-    current_step: int -> for recursion, tells the function how much we've faded
-    fade_duration_ms: int -> the length of time to fade for, in MS
+    Args:
+        root (tk.Tk) the root of the window
+        label (ttk.Label): the label to fade
+        start_color (tuple): the start color, as an RGB tuple
+        end_color (tuple): the end color, as an RGB tuple
+        current_step (int): for recursion, tells the function how much we've faded
+        fade_duration_ms (int): the length of time to fade for, in MS
     """
 
     # set a framerate for the fade
@@ -283,8 +289,8 @@ def display_gui(fullscreen: bool = True) -> None:
     """
     Displays the TKinter GUI
     
-    Params:
-    fullscreen: bool = True -> whether to start the app in full screen
+    Args:
+        fullscreen (bool): whether to start the app in full screen
     """
     escape_display_period_ms = 5000
     do_post = False

@@ -26,8 +26,8 @@ def do_oauth_flow() -> Credentials:
 	"""
 	Log a user in and return the credentials needed
 
-	Returns:
-	creds: Credentials -> OAuth2 user credentials
+	Args:
+		creds (Credentials): OAuth2 user credentials
 	"""
 
 	creds = None
@@ -53,12 +53,12 @@ def create_spreadsheet(sheets_service, name: str = "Test") -> dict:
 	"""
 	Create a new spreadsheet by name, returns the created spreadsheet
 
-	Params:
-	sheets_service -> the Google Sheets service to be used
-	name: str -> the name of the spreadsheet to be created
+	Args:
+		sheets_service: the Google Sheets service to be used
+		name (str): the name of the spreadsheet to be created
 
 	Returns:
-	spreadsheet: dict -> the created spreadsheet
+		spreadsheet (dict): the created spreadsheet
 	"""
 
 	# Properties to create a spreadsheet with
@@ -80,15 +80,15 @@ def create_spreadsheet(sheets_service, name: str = "Test") -> dict:
 
 def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 	"""
-	Get a spreadsheet by id
+	Gets a spreadsheet by id
 
-	Params:
-	sheets_service -> the Google Sheets service to be used
-	drive_service -> the Google Drive service to be used
-	spreadsheet_id: str -> the spreadsheet id to access
+	Args:
+		sheets_service: the Google Sheets service to be used
+		drive_service: the Google Drive service to be used
+		spreadsheet_id (str): the spreadsheet id to access
 
 	Returns:
-	spreadsheet: dict -> the retrieved spreadsheet, if any
+		spreadsheet (dict): the retrieved spreadsheet, if any
 	"""
 
 	spreadsheet = None
@@ -107,10 +107,14 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 
 	return spreadsheet
 
-def is_spreadsheet_empty(sheets_service, spreadsheet_id) -> bool:
+def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 	"""
 	Returns whether a given spreadsheet (by ID) is empty.
 	For our purposes, this just means that A1 and B1 are empty
+
+	Args:
+		sheets_service: the Google Sheets service we're using
+		spreadsheet_id (str): the spreadsheet to check for emptiness
 	"""
 
 	try:
@@ -133,7 +137,7 @@ def open_config() -> TextIO:
 	Opens the config/google.json file. Creates one if it doesn't exist.
 
 	Returns:
-	config_file: TextIO -> the config file that we opened
+		config_file (TextIO): the config file that we opened
 	"""
 
 	config_dir = "config"
@@ -188,12 +192,12 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 	"""
 	Gets the last row of a given spreadsheet
 
-	Params:
-	sheets_service -> the Google Sheets service to be used
-	spreadsheet_id: str -> the spreadsheet id to access
+	Args:
+		sheets_service: the Google Sheets service to be used
+		spreadsheet_id (str): the spreadsheet id to access
 
 	Returns:
-	first_empty_row: int -> the first empty row in the spreadsheet
+	first_empty_row (int): the first empty row in the spreadsheet
 	"""
 
 	range_ = "A:A"
@@ -217,13 +221,13 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 	"""
 	Adds a row at the first empty position on the spreadsheet
 
-	Params:
-	sheets_service -> the Google Sheets service to be used
-	spreadsheet_id: str -> the id of the spreadsheet we're operating on
-	cells: List[str] -> a list of cell contents to set
+	Args:
+		sheets_service: the Google Sheets service to be used
+		spreadsheet_id (str): the id of the spreadsheet we're operating on
+		cells (list): a list of cell contents to set
 
 	Returns:
-	result -> the result of the execution
+		result: the result of the execution
 	"""
 
 	next_row = find_first_empty_row(sheets_service, spreadsheet_id)
@@ -259,12 +263,12 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 	Gets a row in a spreadsheet by index (row_idx)
 	
 	Params:
-	sheets_service -> the Google Sheets service we're using
-	spreadsheet_id: str -> the id of the spreadsheet we're working with
-	first_row: int = 1 -> the first row that we need to get
-	last_row: int = 1 -> the last row that we need to get
-	first_letter: str = "A" -> the first column that we need to get
-	last_letter: int = "A" -> the last column that we need to get
+		sheets_service: the Google Sheets service we're using
+		spreadsheet_id (str): the id of the spreadsheet we're working with
+		first_row (int): the first row that we need to get
+		last_row (int): the last row that we need to get
+		first_letter (str): the first column that we need to get
+		last_letter (int): the last column that we need to get
 	"""
 
 	if first_row < 1 or last_row < 1 or first_letter < "A" or last_letter < "A":
@@ -290,11 +294,11 @@ def setup_sheets():
 	Sets up a Google Sheet using the configuration provided.
 
 	Returns:
-	config_file -> the config file that we created or opened
-	sheets_service -> the Google Sheets service we used
-	drive_service -> the Google Drive service we used
-	spreadsheet -> the spreadsheet gotten/created
-	spreadsheet_id -> the spreadsheet's id, for convenience
+		config_file: the config file that we created or opened
+		sheets_service: the Google Sheets service we used
+		drive_service: the Google Drive service we used
+		spreadsheet: the spreadsheet gotten/created
+		spreadsheet_id: the spreadsheet's id, for convenience
 	"""
 
 	# Log in using OAuth

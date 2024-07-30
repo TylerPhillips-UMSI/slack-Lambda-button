@@ -12,7 +12,6 @@ from datetime import datetime
 from subprocess import DEVNULL, STDOUT, check_call
 import requests
 
-import boto3
 import sheets
 
 is_raspberry_pi = not sys.platform.startswith("win32")
@@ -48,26 +47,15 @@ BUTTON_CONFIG = CONFIG["button_config"]
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
 
-def init_aws() -> boto3.client:
-    """
-    Initializes boto3/AWS
-    """
-
-    client = boto3.client("iot-data", 
-                          aws_access_key_id=AWS["AWS_ACCESS_KEY_ID"],
-                          aws_secret_access_key=AWS["AWS_SECRET_ACCESS_KEY"], region_name="Ohio")
-
-    return client
-
 def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]:
     """
     Gets the configuration for a button from Google Sheets
     and returns it as a List
 
-    Params:
-    sheets_service -> the Google Sheets service we're working with
-    spreadsheet_id -> the id of the spreadsheet we're working on
-    device_id -> the id of this specific device, received from config.json
+    Args:
+        sheets_service: the Google Sheets service we're working with
+        spreadsheet_id (int): the id of the spreadsheet we're working on
+        device_id (str): the id of this specific device, received from config.json
     """
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
@@ -90,13 +78,13 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
 
     return device_info
 
-def post_to_slack(message, webhook_url):
+def post_to_slack(message: str, webhook_url: str):
     """
     Posts a message to Slack
 
-    Params:
-    message -> the message to send
-    webhook_url -> the Slack webhook to use (per-channel?)
+    Args:
+        message (str): the message to send
+        webhook_url (str): the Slack webhook to use
     """
 
     payload = {"text": message}
@@ -107,11 +95,11 @@ def get_datetime(update_system_time: bool = False) -> str | None:
     """
     Gets the current datetime as a beautifully formatted string
 
-    Params:
-    update_system_time: bool -> whether to update the system time (Linux only)
+    Args:
+        update_system_time (bool): whether to update the system time (Linux only)
 
     Returns:
-    formatted_time: str | None -> the formatted time string, if present
+        formatted_time (str | None): the formatted time string, if present
     """
 
     formatted_time = None
@@ -140,10 +128,10 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     """
     Handle the Slack Lambda function
 
-    Params:
-    device_config: List[str] -> the device configuration information
-    press_type: str = "SINGLE" -> the press type that we received (SINGLE or LONG)
-    do_post: bool = True -> whether to post the message to Slack
+    Args:
+        device_config (list): the device configuration information
+        press_type (str): the press type that we received (SINGLE or LONG)
+        do_post (bool): whether to post the message to Slack
     """
 
     device_id = device_config[1]
@@ -194,12 +182,10 @@ def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
-    Params:
-    do_post: bool = True -> whether to post to the Slack or just log in console, for debug
-    press_length: int = 0 -> how long was the button pressed?
+    Args:
+        do_post (bool): whether to post to the Slack or just log in console, for debug
+        press_length (int): how long was the button pressed?
     """
-
-    # aws_client = init_aws()
 
     press_type = "LONG" if press_length > 2 else "SINGLE"
 
@@ -211,6 +197,19 @@ def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
 
     # send a message to Slack or the console
     handle_lambda(device_config, press_type=press_type, do_post=do_post)
+
+def lambda_handler(event, context):
+
+    """
+    AWS Lambda function entry point.
+
+    Args:
+        event (dict): The event data from Slack.
+        context (object): The runtime information.
+
+    Returns:
+        dict: A response object for the HTTP request.
+    """
 
 if __name__ == "__main__":
     # testing
