@@ -48,44 +48,24 @@ def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = T
     GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-    def set_press_start(t):
-        PRESS_START = t
+    def handle_gpio_event(channel):
+        """
+        Handles GPIO events for falling and rising edges.
 
-    # add a falling event listener to start tracking time
-    GPIO.add_event_detect(button_1,
-                          GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()),
-                          bouncetime=200)
-    GPIO.add_event_detect(button_2,
-                          GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()),
-                          bouncetime=200)
-    GPIO.add_event_detect(button_3,
-                          GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()),
-                          bouncetime=200)
-    GPIO.add_event_detect(button_4,
-                          GPIO.FALLING,
-                          callback=lambda channel: set_press_start(time.time()),
-                          bouncetime=200)
-    
-    # add a rising event listener to each button (rising because we want the event to trigger when the button is released)
-    GPIO.add_event_detect(button_1,
-                          GPIO.RISING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post),
-                          bouncetime=200)
-    GPIO.add_event_detect(button_2,
-                          GPIO.RISING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post),
-                          bouncetime=200)
-    GPIO.add_event_detect(button_3,
-                          GPIO.RISING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post),
-                          bouncetime=200)
-    GPIO.add_event_detect(button_4,
-                          GPIO.RISING,
-                          callback=lambda channel: handle_interaction(root, frame, style, do_post), 
-                          bouncetime=200)
+        Params:
+        channel: int -> the GPIO channel that triggered the event
+        """
+        global PRESS_START
+        if GPIO.input(channel) == GPIO.LOW:
+            # Falling edge
+            PRESS_START = time.time()
+        else:
+            # Rising edge
+            handle_interaction(root, frame, style, do_post)
+
+    # Add event detection for both edges
+    for button in [button_1, button_2, button_3, button_4]:
+        GPIO.add_event_detect(button, GPIO.BOTH, callback=handle_gpio_event, bouncetime=200)
 
 def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
@@ -126,6 +106,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     style: ttk.Style -> the style class we're working with
     do_post: bool = True -> whether or not to post to the Slack channel
     """
+    global PRESS_START
 
     # clear display
     for widget in frame.winfo_children():
@@ -136,11 +117,13 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
 
     display_post_interaction(root, frame, style, do_post)
 
+    current_time = time.time()
+
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
     root.after(20, lambda:
                lf.handle_interaction(do_post,
-               (time.time() - PRESS_START) if PRESS_START is not None else 0))
+               (current_time - PRESS_START) if PRESS_START is not None else 0))
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -172,7 +155,6 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     root.update_idletasks() # gets stuff to load all at once
 
     three_min = countdown_length_sec * 1000 # seconds * ms
-
     root.after(three_min, lambda: revert_to_main(root, frame, style, do_post))
 
     oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
@@ -293,7 +275,7 @@ def display_gui(fullscreen: bool = True) -> None:
 
     # make a window
     root = tk.Tk()
-    root.iconbitmap("images/lambda.ico")
+    # root.iconbitmap("images/lambda.ico")
 
     # set display attributes/config
     root.attributes("-fullscreen", fullscreen)
@@ -310,9 +292,14 @@ def display_gui(fullscreen: bool = True) -> None:
     style = ttk.Style()
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
 
+    def set_press_start():
+        global PRESS_START
+        PRESS_START = time.time()
+
     # bind keys/buttons
     root.bind("<Escape>", lambda event: root.destroy())
-    root.bind("<Button-1>", lambda event: 
+    root.bind("<ButtonPress-1>", lambda event: set_press_start())
+    root.bind("<ButtonRelease-1>", lambda event:
               handle_interaction(root, display_frame, style, do_post=do_post))
 
     if is_raspberry_pi:
