@@ -292,7 +292,9 @@ def display_gui(fullscreen: bool = True) -> None:
     # root.iconbitmap("images/lambda.ico")
 
     # set display attributes/config
-    root.attributes("-fullscreen", fullscreen)
+    # NEED to delay this to ensure consistent behavior
+    # if you don't, it may not go fullscreen
+    root.after(300, lambda: root.attributes("-fullscreen", fullscreen))
     root.configure(bg=BLUE)
     root.title("Slack Lambda Button")
 
@@ -327,7 +329,10 @@ def display_gui(fullscreen: bool = True) -> None:
     root.mainloop()
 
     if is_raspberry_pi:
-        GPIO.cleanup() # finally, clean everything up
+        try:
+            GPIO.cleanup() # finally, clean everything up
+        except GPIO.error:
+            pass
 
 if __name__ == "__main__":
     display_gui(fullscreen = True)
