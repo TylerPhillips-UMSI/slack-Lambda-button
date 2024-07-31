@@ -177,10 +177,10 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     def update_text_widget():
         text_widget.delete("1.0", tk.END)
-        text_widget.insert(tk.END, f"{' ' if seconds_left < 100 else ''}" + "Request times out in ", "timeout")
 
+        text_widget.insert(tk.END, f"{' ' if seconds_left < 100 else ''}", "countdown")
+        text_widget.insert(tk.END, "Request times out in ", "timeout")
         text_widget.insert(tk.END, f"{seconds_left}", "countdown")
-
         text_widget.insert(tk.END, " seconds", "timeout")
 
     # Initial update
