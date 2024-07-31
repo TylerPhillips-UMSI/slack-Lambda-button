@@ -163,7 +163,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     oswald_96 = tkFont.Font(family="Oswald", size=96, weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=80, weight="bold")
     oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
-    monospace = tkFont.Font(family="Ubuntu", size=32, weight="bold")
+    monospace = tkFont.Font(family="Ubuntu Mono", size=32, weight="bold")
 
     style.configure("Timeout.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
     style.configure("Countdown.TLabel", foreground=MAIZE, background=BLUE, font=monospace)
@@ -238,7 +238,7 @@ def hex_to_rgb(hex_str: str) -> tuple:
         The tuple our hex converts to
     """
 
-    hex_ = hex_.lstrip("#")
+    hex_str = hex_str.lstrip("#")
     return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
