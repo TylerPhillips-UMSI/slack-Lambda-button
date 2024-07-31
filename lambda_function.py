@@ -15,6 +15,7 @@ import requests
 import sheets
 
 is_raspberry_pi = not sys.platform.startswith("win32")
+pending_messages = []
 
 # Read the configuration files
 try:
@@ -89,6 +90,7 @@ def post_to_slack(message: str, webhook_url: str):
 
     payload = {"text": message}
     response = requests.post(webhook_url, json=payload, timeout=10) # 10 second timeout
+    print(response)
     return response.text
 
 def get_datetime(update_system_time: bool = False) -> str | None:
@@ -175,8 +177,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
 
     # handle long button presses by sending a test message
     if press_type == "LONG":
-        final_message = f"""Testing button at {final_location}\n
-                            Device ID: {device_id}\nTimestamp: {fancy_time}"""
+        final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
     print(f"Using Webhook: {final_webhook}")
@@ -224,7 +225,35 @@ def lambda_handler(event, context):
     Returns:
         dict: A response object for the HTTP request.
     """
+    # headers = event["headers"]
+    body = event["body"]
+
+    slack_event = json.loads(body)
+
+    event_type = slack_event["event"]["type"]
+    if event_type == "message":
+        handle_message(slack_event["event"])
+    elif event_type == 'reaction_added':
+        handle_reaction_added(slack_event['event'])
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"status": "success"})
+    }
+
+def handle_message(event):
+    message = event.get("text")
+    
+    if ":white_check_mark:" in message or ":+1:" in message:
+        pass
+
+def handle_reaction_added(event):
+    reaction = event.get("reaction")
+    added_to = event.get("item")
+
+    if reaction == ":white_check_mark:" and added_to in pending_messages:
+        pass
 
 if __name__ == "__main__":
     # testing
-    handle_interaction(False, press_length = 634)
+    handle_interaction(do_post = True, press_length = 634)
