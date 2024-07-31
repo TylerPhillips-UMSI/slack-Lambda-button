@@ -174,10 +174,10 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     else:
         final_webhook = device_webhook
 
-
     # handle long button presses by sending a test message
     if press_type == "LONG":
-        final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
+        final_message = f"Testing button at {final_location}"
+        final_message += "\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
     print(f"Using Webhook: {final_webhook}")
@@ -214,16 +214,16 @@ def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
     # send a message to Slack or the console
     handle_lambda(device_config, press_type=press_type, do_post=do_post)
 
-def lambda_handler(event, context):
+def lambda_handler(event: dict, context: object):
     """
     AWS Lambda function entry point.
 
     Args:
-        event (dict): The event data from Slack.
-        context (object): The runtime information.
+        event (dict): the event data from Slack
+        context (object): the runtime information
 
     Returns:
-        dict: A response object for the HTTP request.
+        dict: a response object for the HTTP request
     """
     # headers = event["headers"]
     body = event["body"]
@@ -241,13 +241,25 @@ def lambda_handler(event, context):
         "body": json.dumps({"status": "success"})
     }
 
-def handle_message(event):
+def handle_message(event: dict):
+    """
+    Handles messages for lambda_handler
+
+    Args:
+        event (dict): the event data from Slack
+    """
     message = event.get("text")
     
     if ":white_check_mark:" in message or ":+1:" in message:
         pass
 
 def handle_reaction_added(event):
+    """
+    Handles reactions for lambda_handler
+
+    Args:
+        event (dict): the event data from Slack
+    """
     reaction = event.get("reaction")
     added_to = event.get("item")
 
