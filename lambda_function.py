@@ -155,13 +155,28 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
         return {"statusCode": 429, "body": "Rate limit applied."}
 
     # handle empty message/location
-    final_message = device_message if device_message is not None and device_message != "" else "Unknown button pressed."
-    final_location = device_location if device_location is not None and device_location != "" else "Unknown Location"
-    final_webhook = device_webhook if device_webhook is not None and device_webhook != "" else WEBHOOK_URL
+    if device_message is None or device_message == "":
+        final_message = "Unknown button pressed."
+    else:
+        final_message = device_message
+
+    # Check and assign device_location
+    if device_location is None or device_location == "":
+        final_location = "Unknown Location"
+    else:
+        final_location = device_location
+
+    # Check and assign device_webhook
+    if device_webhook is None or device_webhook == "":
+        final_webhook = WEBHOOK_URL
+    else:
+        final_webhook = device_webhook
+
 
     # handle long button presses by sending a test message
     if press_type == "LONG":
-        final_message = f"Testing button at {final_location}\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
+        final_message = f"""Testing button at {final_location}\n
+                            Device ID: {device_id}\nTimestamp: {fancy_time}"""
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
     print(f"Using Webhook: {final_webhook}")
@@ -199,7 +214,6 @@ def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
     handle_lambda(device_config, press_type=press_type, do_post=do_post)
 
 def lambda_handler(event, context):
-
     """
     AWS Lambda function entry point.
 
