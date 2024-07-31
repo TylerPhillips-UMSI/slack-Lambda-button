@@ -165,17 +165,26 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
     monospace = tkFont.Font(family="Ubuntu Mono", size=32, weight="bold")
 
-    style.configure("Timeout.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
-    style.configure("Countdown.TLabel", foreground=MAIZE, background=BLUE, font=monospace)
+    # Create a Text widget to display the countdown and timeout
+    text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0, highlightthickness=0)
+    text_widget.place(relx=0.99, rely=0.99, anchor="se", width=605, height=75)  # Adjust as necessary
+
+    # Configure tags for different fonts
+    text_widget.tag_configure("timeout", font=oswald_32, foreground=MAIZE)
+    text_widget.tag_configure("countdown", font=monospace, foreground=MAIZE)
 
     seconds_left = countdown_length_sec
-    timeout_label = ttk.Label(frame, text="Request times out in        seconds",
-                              style="Timeout.TLabel")
-    timeout_label.place(relx=0.99, rely=0.99, anchor="se")
-    
-    countdown_label = ttk.Label(frame, text=f"{seconds_left}",
-                                style="Countdown.TLabel")
-    countdown_label.place(relx=0.893, rely=0.961, anchor="center")
+
+    def update_text_widget():
+        text_widget.delete("1.0", tk.END)
+        text_widget.insert(tk.END, f"{' ' if seconds_left < 100 else ''}" + "Request times out in ", "timeout")
+
+        text_widget.insert(tk.END, f"{seconds_left}", "countdown")
+
+        text_widget.insert(tk.END, " seconds", "timeout")
+
+    # Initial update
+    update_text_widget()
 
     # do a timeout countdown
     def countdown():
@@ -183,13 +192,13 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
         # decrement seconds left and set the label's text
         seconds_left -= 1
-        countdown_label.configure(text=f"{seconds_left}")
+        update_text_widget()
 
         # schedule countdown until seconds_left is 1
         if seconds_left > 0:
             root.after(1000, countdown)
         else:
-            timeout_label.place_forget()
+            text_widget.place_forget()
 
     root.after(1000, countdown)
 
