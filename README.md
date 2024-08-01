@@ -27,11 +27,11 @@ Depending on the button's configuration, different messages can be sent to desig
 
 - Create a new [Slack App](https://api.slack.com/apps).
 - Under Features, activate `Incoming Webhooks`.
-- Add a new webhook to your workspace. Copy the webhook URL, which will be used in the `config.json`. 
+- Add a new webhook to your workspace. Copy the webhook URL, which will be used in the `slack.json`. 
 
 ### 2. Configuration File
  
-Create a configuration file (`config.json`) with the required settings. Expand this file to meet the number of buttons you are deploying:
+Create a configuration file (`slack.json`) with the required settings. Expand this file to meet the number of buttons you are deploying:
 
 ```json
 {
@@ -75,7 +75,7 @@ To package this library with your Lambda function:
   pip install requests -t .
 ```
 
-- Add your Lambda function script (lambda_function.py) and configuration file (config.json) to this directory.
+- Add your Lambda function script (lambda_function.py) and configuration file (slack.json) to this directory.
 - Zip the contents of the directory, ensuring the libraries are included.
 
 ### 4. Deploying the Lambda Function
@@ -84,7 +84,7 @@ To package this library with your Lambda function:
 
 - Navigate to AWS Lambda in the AWS Console.
 - Create a new function.
-- Zip and upload the Lambda function code alongside the required libraries and config.json.
+- Zip and upload the Lambda function code alongside the required libraries and slack.json.
 - Assign the necessary execution role.
 
 #### IoT Button Deployment
@@ -94,14 +94,14 @@ To package this library with your Lambda function:
 
 ## Usage
 
-After deployment, pressing the AWS IoT button will trigger the Lambda function. Depending on the type of press, a specific message from `config.json` will be sent to Slack. 
+After deployment, pressing the AWS IoT button will trigger the Lambda function. Depending on the type of press, a specific message from `slack.json` will be sent to Slack. 
 
 ## Troubleshooting
 
 - Check CloudWatch logs for errors or issues during execution.
 - Ensure the IoT button is properly set up and triggering the Lambda function.
-- Confirm that `config.json` contains the correct configurations.
-- Verify the function isn't affected by the rate limit of 1 message per minute which is applied per-button. You can verify this in the CloudWatch logs. Please note that if you need to modify the rate limit it is presently hard-coded in `lambda_function.py`. Future revisions will move this option to `config.json`.
+- Confirm that `slack.json` contains the correct configurations.
+- Verify the function isn't affected by the rate limit of 1 message per minute which is applied per-button. You can verify this in the CloudWatch logs. Please note that if you need to modify the rate limit it is presently hard-coded in `lambda_function.py`. Future revisions will move this option to `slack.json`.
 
 ## Contributing
 

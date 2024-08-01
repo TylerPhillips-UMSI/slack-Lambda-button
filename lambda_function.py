@@ -5,6 +5,7 @@ The Slack Lambda Button module for the Duderstadt Center
 import json
 import sys
 import time
+import os
 
 from typing import List
 
@@ -19,13 +20,13 @@ pending_messages = []
 
 # Read the configuration files
 try:
-    with open("config.json", "r", encoding="utf8") as file:
+    with open("slack.json", "r", encoding="utf8") as file:
         CONFIG = json.load(file)
 except json.JSONDecodeError as e:
     print(e)
 except FileNotFoundError as e:
-    with open("config.json", "x", encoding="utf8") as file:
-        print("config.json not found, creating it for you...")
+    with open("slack.json", "x", encoding="utf8") as file:
+        print("slack.json not found, creating it for you...")
 
         defaults = {"webhook_url": "", "button_config": {"device_id": ""}}
         json.dump(defaults, file)
@@ -44,6 +45,7 @@ except FileNotFoundError as e:
 
 WEBHOOK_URL = CONFIG["webhook_url"]
 BUTTON_CONFIG = CONFIG["button_config"]
+BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
 
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
@@ -56,7 +58,7 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
     Args:
         sheets_service: the Google Sheets service we're working with
         spreadsheet_id (int): the id of the spreadsheet we're working on
-        device_id (str): the id of this specific device, received from config.json
+        device_id (str): the id of this specific device, received from slack.json
     """
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
@@ -89,8 +91,16 @@ def post_to_slack(message: str, webhook_url: str):
     """
 
     payload = {"text": message}
+
     response = requests.post(webhook_url, json=payload, timeout=10) # 10 second timeout
-    print(response)
+
+    # Save the response JSON to a file
+    response_json = response.json()
+    with open("slack_response.json", "w", encoding="utf8") as file:
+        json.dump(response_json, file, indent=3)
+    
+    print(json.dumps(response_json, indent=3))
+
     return response.text
 
 def get_datetime(update_system_time: bool = False) -> str | None:
@@ -177,7 +187,7 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
     # handle long button presses by sending a test message
     if press_type == "LONG":
         final_message = f"Testing button at {final_location}"
-        final_message += "\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
+        final_message += f"\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
     print(f"Using Webhook: {final_webhook}")
