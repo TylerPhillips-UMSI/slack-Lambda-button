@@ -28,7 +28,7 @@ except FileNotFoundError as e:
     with open("slack.json", "x", encoding="utf8") as file:
         print("slack.json not found, creating it for you...")
 
-        defaults = {"webhook_url": "", "button_config": {"device_id": ""}}
+        defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
         json.dump(defaults, file)
 try:
     with open("aws.json", "r", encoding="utf8") as file:
@@ -43,7 +43,6 @@ except FileNotFoundError as e:
         json.dump(defaults, file)
     exit()
 
-WEBHOOK_URL = CONFIG["webhook_url"]
 BUTTON_CONFIG = CONFIG["button_config"]
 BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
 
