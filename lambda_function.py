@@ -92,7 +92,7 @@ def post_to_slack(channel_id: str, message: str):
 
     url = "https://slack.com/api/chat.postMessage"
     headers = {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
         "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
     }
     payload = {
@@ -108,6 +108,8 @@ def post_to_slack(channel_id: str, message: str):
 
     # Extract the message ID (timestamp)
     message_id = response_data.get("ts")
+    pending_messages.append(message_id)
+
     print(f"Message posted with ID: {message_id}")
     
     return message_id
@@ -253,30 +255,55 @@ def lambda_handler(event: dict, context: object):
         "body": json.dumps({"status": "success"})
     }
 
-def handle_message(event: dict):
+def handle_message(event: dict) -> bool:
     """
     Handles messages for lambda_handler
 
     Args:
         event (dict): the event data from Slack
+
+    Returns:
+        resolved (bool): whether the message was marked as resolved, for GUI
     """
     message = event.get("text")
-    
-    if ":white_check_mark:" in message or ":+1:" in message:
-        pass
+    thread_ts = event.get("thread_ts")
 
-def handle_reaction_added(event):
+    # going to be used in the GUI to determine if we should display the message
+    resolved = False
+
+    if thread_ts in pending_messages:
+        if ":white_check_mark:" in message or ":+1:" in message:
+            print(f"Message thread {thread_ts} has received a resolving response. Marking as resolved.")
+            pending_messages.remove(thread_ts)
+
+            resolved = True
+
+    return resolved
+
+
+def handle_reaction_added(event: dict) -> bool:
     """
     Handles reactions for lambda_handler
 
     Args:
         event (dict): the event data from Slack
+
+    Returns:
+        resolved (bool): whether the message was marked as resolved, for GUI
     """
     reaction = event.get("reaction")
-    added_to = event.get("item")
+    item = event.get("item", {})
+    ts = item.get("ts")
 
-    if reaction == ":white_check_mark:" and added_to in pending_messages:
-        pass
+    # going to be used in the GUI to determine if we should display the message
+    resolved = False
+
+    if ts in pending_messages:
+        if reaction in ("white_check_mark", "+1"): # no colons in Slack reaction values
+            print(f"Message {ts} has received a resolving reaction. Marking as resolved.")
+            pending_messages.remove(ts)
+
+    return resolved
 
 if __name__ == "__main__":
     # testing
