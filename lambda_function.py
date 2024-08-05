@@ -63,8 +63,8 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
 
     device_id_list = sheets.get_region(sheets_service, spreadsheet_id,
-                            first_row = 2, last_row = last_row,
-                            first_letter = "B", last_letter = "B")
+                                        first_row = 2, last_row = last_row,
+                                        first_letter = "B", last_letter = "B")
 
     device_id_list = [id[0].strip() if id != [] else "" for id in device_id_list]
     try:
@@ -74,9 +74,13 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
         print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
         sys.exit()
 
-    device_info = sheets.get_region(sheets_service, spreadsheet_id,
-                                    first_row = device_index, last_row = device_index,
-                                    first_letter = "A", last_letter = "I")[0]
+    try:
+        device_info = sheets.get_region(sheets_service, spreadsheet_id,
+                                        first_row = device_index, last_row = device_index,
+                                        first_letter = "A", last_letter = "I")[0]
+    except IndexError:
+        print(f"Index out of range when selecting device config. Did you forget to set the device ID (slack.json)?")
+        sys.exit()
 
     return device_info
 
