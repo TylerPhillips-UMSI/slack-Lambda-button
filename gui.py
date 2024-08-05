@@ -18,8 +18,8 @@ MAIZE = "#FFCB05"
 BLUE = "#00274C"
 PRESS_START = None # for long button presses
 
+# only import GPIO and do GPIO operations on Pi
 is_raspberry_pi = not sys.platform.startswith("win32")
-
 if is_raspberry_pi:
     import RPi.GPIO as GPIO # for Argon interactions
 
@@ -348,7 +348,7 @@ def display_gui(fullscreen: bool = True) -> None:
     if is_raspberry_pi:
         try:
             GPIO.cleanup() # finally, clean everything up
-        except GPIO.error:
+        except Exception:
             pass
 
 if __name__ == "__main__":

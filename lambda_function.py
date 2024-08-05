@@ -103,9 +103,10 @@ def post_to_slack(channel_id: str, message: str):
         "text": message
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=10)  # 10 second timeout
+    # 10 second timeout
+    response = requests.post(url, headers=headers, json=payload, timeout=10)
     response_data = response.json()
-    
+
     if not response_data.get("ok"):
         raise Exception(f"Error posting message: {response_data}")
 
@@ -230,6 +231,8 @@ def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
 
     # send a message to Slack or the console
     handle_lambda(device_config, press_type=press_type, do_post=do_post)
+
+# TODO: Separate this code
 
 def lambda_handler(event: dict, context: object):
     """
