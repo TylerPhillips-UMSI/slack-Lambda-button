@@ -6,6 +6,9 @@ pip install --upgrade requests
 # Install Google Sheets/Docs libraries
 pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
+# Install boto3
+pip install --upgrade boto3
+
 # force upgrade to lgpio, which doesn't error out for this project
 sudo apt remove python3-rpi.gpio
 sudo apt update
