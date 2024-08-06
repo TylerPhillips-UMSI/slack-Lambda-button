@@ -41,14 +41,13 @@ def lambda_handler(event: dict, context: object):
         dict: a response object for the HTTP request
     """
     # headers = event["headers"]
-    body = event.get("body", {})
+    event_type = event.get("type")
 
-    slack_event = body.get("event", {})
-
-    event_type = slack_event.get("type")
-
-    if event_type == "message":
-        handle_message(event)
+    # according to THIS page: https://api.slack.com/events/message/message_replied
+    # there is a bug where subtype is currently missing when the event is dispatched via the events API
+    # until fixed, we need to verify that it has a thread_ts, which is unique to message replies here
+    if event_type == "message" and event.get("message").get("thread_ts") is not None:
+        handle_message_replied(event)
     elif event_type == "reaction_added":
         handle_reaction_added(event)
     elif event_type == "post":
@@ -61,7 +60,7 @@ def lambda_handler(event: dict, context: object):
         "body": json.dumps({"status": "success"})
     }
 
-def handle_message(event: dict) -> bool:
+def handle_message_replied(event: dict) -> bool:
     """
     Handles messages for lambda_handler
 
@@ -71,15 +70,24 @@ def handle_message(event: dict) -> bool:
     Returns:
         resolved (bool): whether the message was marked as resolved, for GUI
     """
-    message = event.get("text")
-    thread_ts = event.get("ts")
+    print("Handling message...")
+
+    message = event.get("message")
+    channel_id = event.get("channel")
+    thread_ts = message.get("thread_ts")
     channel_id = message_to_channel.get(thread_ts)
+
+    # gather information about the reply message
+    replies = message.get("replies", [])
+    reply_count = message.get("reply_count")
+    reply_ts = replies[reply_count - 1].get("ts")
+    reply_text = get_message_content(channel_id, reply_ts)
 
     # going to be used in the GUI to determine if we should display the message
     resolved = False
 
     if thread_ts in pending_messages:
-        if ":white_check_mark:" in message or ":+1:" in message:
+        if ":white_check_mark:" in reply_text or ":+1:" in reply_text:
             print(f"Message thread {thread_ts} has received a resolving response. Marking as resolved.")
             pending_messages.remove(thread_ts)
 
@@ -101,20 +109,26 @@ def handle_reaction_added(event: dict) -> bool:
     Returns:
         resolved (bool): whether the message was marked as resolved, for GUI
     """
+    print("Handling reaction added...")
+
     reaction = event.get("reaction")
     item = event.get("item", {})
-    ts = item.get("ts")
-    channel_id = message_to_channel.get(ts)
+    message_id = item.get("ts")
+    channel_id = message_to_channel.get(message_id)
 
     # going to be used in the GUI to determine if we should display the message
     resolved = False
 
-    if ts in pending_messages:
+    if message_id in pending_messages:
         if reaction in ("white_check_mark", "+1"): # no colons in Slack reaction values
-            print(f"Message {ts} has received a resolving reaction. Marking as resolved.")
-            pending_messages.remove(ts)
+            print(f"Message {message_id} has received a resolving reaction. Marking as resolved.")
+            pending_messages.remove(message_id)
 
-            mark_message_resolved(channel_id, ts)
+            mark_message_resolved(channel_id, message_id)
+        else:
+            print("Reaction was not white_check_mark or +1")
+    else:
+        print("Timestamp was not in pending messages")
 
     return resolved
 
@@ -234,9 +248,9 @@ if __name__ == "__main__":
         print("Error decoding test_post.json:", e)
 
     try:
-        with open("aws_json/test_message.json", "r", encoding="utf8") as test_file:
+        with open("aws_json/test_reaction.json", "r", encoding="utf8") as test_file:
             test_event = json.load(test_file)
-            test_event["ts"] = pending_messages[0]
+            test_event["item"]["ts"] = pending_messages[0]
             response = lambda_handler(test_event, None)
             print("Response:", response)
     except FileNotFoundError as e:

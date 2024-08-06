@@ -1,9 +1,5 @@
 {
-    "body": {
-      "event": {
-        "type": "post"
-      }
-    },
-    "message": "This is a test from AWS",
-    "channel_id": "C05T5H5GK54"
-  }
+  "type": "post",
+  "message": "This is a test from Nikki's local machine",
+  "channel_id": "C05T5H5GK54"
+}
