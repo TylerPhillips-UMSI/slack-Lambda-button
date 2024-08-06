@@ -1,3 +1,4 @@
 aws.json
 config/
 slack.json
+slackLambda-dev-aws.zip
