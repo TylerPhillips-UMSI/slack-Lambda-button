@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
+
 """
 The TKinter GUI module for Slack-Lambda-Button.
 
-Written by:
+Author:
 Nikki Hess - nkhess@umich.edu
 """
 
@@ -349,7 +351,7 @@ def display_gui(fullscreen: bool = True) -> None:
         try:
             GPIO.cleanup() # finally, clean everything up
         except Exception:
-            pass
+            pass # okay, don't clean everything up
 
 if __name__ == "__main__":
     display_gui(fullscreen = True)

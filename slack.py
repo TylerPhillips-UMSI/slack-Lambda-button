@@ -1,11 +1,15 @@
+#!/usr/bin/env python3
+
 """
 The Slack Lambda Button module for the Duderstadt Center
+
+Author:
+Nikki Hess (nkhess@umich.edu)
 """
 
 import json
 import sys
 import time
-import os
 
 from typing import List
 
@@ -78,7 +82,7 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
                                         first_row = device_index, last_row = device_index,
                                         first_letter = "A", last_letter = "I")[0]
     except IndexError:
-        print(f"Index out of range when selecting device config. Did you forget to set the device ID (slack.json)?")
+        print("Index out of range when selecting device config. Did you forget to set the device ID (slack.json)?")
         sys.exit()
 
     return device_info
@@ -177,13 +181,13 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
 
     return {"statusCode": 200, "body": slack_response}
 
-def handle_interaction(do_post: bool = True, press_length: int = 0) -> None:
+def handle_interaction(do_post: bool = True, press_length: float = 0) -> None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
     Args:
         do_post (bool): whether to post to the Slack or just log in console, for debug
-        press_length (int): how long was the button pressed?
+        press_length (float): how long was the button pressed?
     """
 
     press_type = "LONG" if press_length > 2 else "SINGLE"
