@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+
+"""
+Code for interacting with AWS SNS. Currently a testing ground.
+
+Author:
+Nikki Hess (nkhess@umich.edu)
+"""
+
 import boto3
 
 # initialize Amazon SNS

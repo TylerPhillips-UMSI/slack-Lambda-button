@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 """
-The Google Sheets/Drive module for PiSwiper.
+Makes interfacing with Google Sheets a bit easier.
 
-Written by:
-Nikki Hess - nkhess@umich.edu
+Author:
+Nikki Hess (nkhess@umich.edu)
 """
 
 import os
@@ -342,4 +342,4 @@ def setup_sheets():
 
 
 if __name__ == "__main__":
-  setup_sheets()
+	setup_sheets()
