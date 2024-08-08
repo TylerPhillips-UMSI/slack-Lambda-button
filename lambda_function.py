@@ -94,6 +94,8 @@ def handle_message_replied(event: dict) -> bool:
             mark_message_resolved(channel_id, thread_ts)
 
             resolved = True
+        else:
+            print("Response did not contain :white_check_mark: or :+1:")
     else:
         print("Timestamp was not in pending messages")
 
