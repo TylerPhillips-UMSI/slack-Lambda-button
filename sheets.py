@@ -22,19 +22,7 @@ from googleapiclient.errors import HttpError
 
 # The only scope we need is drive.file so we can create files and interact with those files
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
-cache = {
-	"spreadsheets": {
-		"id": {
-			"contents": {},
-			"contents_expiry": 123456,
-			"regions": {
-				"A1:A1": {"contents": ["test"], "expiry": 123456}
-			},
-			"first_empty_row": {"index": 0, "expiry": 123456},
-			"empty": {"value": False, "expiry": 123456}
-		}
-	}
-}
+cache = {}
 cache_cooldown = 1500
 
 def open_config() -> TextIO:
@@ -339,20 +327,6 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 
 	if first_row < 1 or last_row < 1 or first_letter < "A" or last_letter < "A":
 		raise ValueError("Google Sheets starts at A1!")
-
-	# cache = {
-	# 	"spreadsheets": {
-	# 		"id": {
-	# 			"contents": {},
-	# 			"contents_expiry": 123456,
-	# 			"regions": {
-	# 				"A1:A1": {"contents": ["test"], "expiry": 123456}
-	# 			},
-	# 			"first_empty_row": {"index": 0, "expiry": 123456},
-	# 			"empty": {"value": False, "expiry": 123456}
-	# 		}
-	# 	}
-	# }
 
 	range = f"{first_letter}{first_row}:{last_letter}{last_row}"
 
