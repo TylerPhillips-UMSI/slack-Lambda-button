@@ -16,6 +16,10 @@ import time
 
 import slack
 
+import cProfile
+import pstats
+import io
+
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
 PRESS_START = None # for long button presses
@@ -296,7 +300,7 @@ def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tup
                    label, start_color, end_color, current_step,
                    fade_duration_ms)
 
-def display_gui(fullscreen: bool = True) -> None:
+def display_gui() -> None:
     """
     Displays the TKinter GUI
     
@@ -310,15 +314,12 @@ def display_gui(fullscreen: bool = True) -> None:
     root = tk.Tk()
     # root.iconbitmap("images/lambda.ico")
 
-    # set display attributes/config
-    # NEED to delay this to ensure consistent behavior
-    # if you don't, it may not go fullscreen
-    root.after(300, lambda: root.attributes("-fullscreen", fullscreen))
+    root.attributes("-fullscreen", True)
     root.configure(bg=BLUE)
     root.title("Slack Lambda Button")
 
     display_frame = tk.Frame(root, bg=BLUE)
-    display_frame.pack(fill=tk.BOTH, expand=True)
+    display_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
     # load oswald, a U of M standard font
     oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
@@ -354,4 +355,15 @@ def display_gui(fullscreen: bool = True) -> None:
             pass # okay, don't clean everything up
 
 if __name__ == "__main__":
-    display_gui(fullscreen = True)
+    profiler = cProfile.Profile()
+    profiler.enable()
+
+    display_gui()
+
+    profiler.disable()
+
+    s = io.StringIO()
+    ps = pstats.Stats(profiler, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
+    ps.print_stats()
+
+    print(s.getvalue())
