@@ -16,10 +16,6 @@ import time
 
 import slack
 
-import cProfile
-import pstats
-import io
-
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
 PRESS_START = None # for long button presses
@@ -29,7 +25,7 @@ is_raspberry_pi = not sys.platform.startswith("win32")
 if is_raspberry_pi:
     import RPi.GPIO as GPIO # for Argon interactions
 
-def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool = True) -> None:
+def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
     Sets up GPIO event listeners for the Argon case's 4 buttons
 
@@ -91,7 +87,7 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
 
     root.bind("<ButtonPress-1>", lambda event: set_press_start())
     root.bind("<ButtonRelease-1>", lambda event:
-              handle_interaction(root, frame, style, do_post=do_post))
+              handle_interaction(root, frame, style, do_post))
 
 def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
@@ -122,7 +118,7 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     instruction_label.place(relx=0.5, rely=0.68, anchor="center")
 
 def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
-                       do_post: bool = True) -> None:
+                       do_post: bool) -> None:
     """
     Handles the Lambda function and switching to the post-interaction display
 
@@ -158,7 +154,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     Args:
         root (tk.Tk): the root window
-        frame (tk.Frame) the frame
+        frame (tk.Frame): the frame
         style (ttk.Style): the style manager for our window
         do_post (bool): whether to post to Slack
     """
@@ -231,7 +227,7 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
         root (tk.Tk): the root window we're working with
         frame (tk.Frame): the frame we're working with
         style (ttk.Style): the style we'd like to hold onto
-        do_post (bool) whether to post to Slack
+        do_post (bool): whether to post to Slack
     """
 
     for widget in frame.winfo_children():
@@ -262,7 +258,7 @@ def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
     Interpolates between two colors based on time
 
     Args:
-        start_color (tuple) the color to start with
+        start_color (tuple): the color to start with
         end_color (tuple): the color to end with
         t (int): the amount of time that has passed
 
@@ -272,13 +268,13 @@ def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
     return tuple(int(a + (b - a) * t) for a, b in zip(start_color, end_color))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple,
+def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple,
                current_step: int, fade_duration_ms: int) -> None:
     """
     A recursive function that fades a label from one color to another
 
     Args:
-        root (tk.Tk) the root of the window
+        root (tk.Tk): the root of the window
         label (ttk.Label): the label to fade
         start_color (tuple): the start color, as an RGB tuple
         end_color (tuple): the end color, as an RGB tuple
@@ -296,7 +292,7 @@ def fade_label(root: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tup
     label.configure(foreground=f"#{new_color[0]:02x}{new_color[1]:02x}{new_color[2]:02x}")
 
     if current_step <= fps:
-        root.after(fade_duration_ms // fps, fade_label, root,
+        frame.after(fade_duration_ms // fps, fade_label, frame,
                    label, start_color, end_color, current_step,
                    fade_duration_ms)
 
@@ -333,7 +329,7 @@ def display_gui() -> None:
     bind_presses(root, display_frame, style, do_post)
 
     if is_raspberry_pi:
-        setup_gpio(root, display_frame, style, do_post=do_post)
+        setup_gpio(root, display_frame, style, do_post)
 
     # set up the actual items in the display
     escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
@@ -355,15 +351,4 @@ def display_gui() -> None:
             pass # okay, don't clean everything up
 
 if __name__ == "__main__":
-    profiler = cProfile.Profile()
-    profiler.enable()
-
     display_gui()
-
-    profiler.disable()
-
-    s = io.StringIO()
-    ps = pstats.Stats(profiler, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
-    ps.print_stats()
-
-    print(s.getvalue())
