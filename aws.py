@@ -41,6 +41,8 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: 
         dev (bool): whether we're using the dev AWS instance
     """
 
+    print("Posting message to Slack via AWS...")
+
     payload = {
         "type": "post",
         "message": message,

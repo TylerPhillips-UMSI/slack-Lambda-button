@@ -16,10 +16,13 @@ from typing import List
 from datetime import datetime
 from subprocess import DEVNULL, STDOUT, check_call
 import requests
+import boto3
 
 import sheets
+import aws
 
 is_raspberry_pi = not sys.platform.startswith("win32")
+aws_client = aws.setup_aws()
 
 # Read the configuration files
 try:
@@ -107,23 +110,28 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     return formatted_time
 
-def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
-                  do_post: bool = True) -> dict:
+def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_length: float = 0) -> None:
     """
-    Handle the Slack Lambda function
+    Handles a button press or screen tap, basically just does the main functionality
 
     Args:
-        device_config (list): the device configuration information
-        press_type (str): the press type that we received (SINGLE or LONG)
-        do_post (bool): whether to post the message to Slack
+        aws_client (boto3.client): the AWS client we're using
+        do_post (bool): whether to post to the Slack or just log in console, for debug
+        press_length (float): how long was the button pressed?
     """
 
-    device_id = device_config[1]
+    press_type = "LONG" if press_length > 2 else "SINGLE"
+
+    # set up Google Sheets and grab the config
+    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
+    device_id = BUTTON_CONFIG["device_id"]
+
+    device_config = get_config(sheets_service, spreadsheet_id, device_id)
+    
     # device_mac = device_config[2]
     device_location = device_config[3]
     # device_function = device_config[5]
     device_message = device_config[4]
-    # device_alt_webhook = None
     device_rate_limit = int(device_config[7])
     device_channel_id = device_config[8]
 
@@ -159,36 +167,12 @@ def handle_lambda(device_config: List[str], press_type: str = "SINGLE",
 
     # sort of mocking, I guess? I circumvent API calls, but it's not REALLY mocking is it?
     if do_post:
-        slack_response = post_to_slack(message=final_message, channel_id=device_channel_id)
-        print(f"Received response from Slack: {slack_response}")
+        aws.post_to_slack(aws_client, final_message, device_channel_id, True)
 
         LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
     else:
-        slack_response = "ok"
         print(f"\nMESSAGE\n--------\n{final_message}")
-
-    return {"statusCode": 200, "body": slack_response}
-
-def handle_interaction(do_post: bool = True, press_length: float = 0) -> None:
-    """
-    Handles a button press or screen tap, basically just does the main functionality
-
-    Args:
-        do_post (bool): whether to post to the Slack or just log in console, for debug
-        press_length (float): how long was the button pressed?
-    """
-
-    press_type = "LONG" if press_length > 2 else "SINGLE"
-
-    # set up Google Sheets and grab the config
-    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
-    device_id = BUTTON_CONFIG["device_id"]
-
-    device_config = get_config(sheets_service, spreadsheet_id, device_id)
-
-    # send a message to Slack or the console
-    handle_lambda(device_config, press_type=press_type, do_post=do_post)
 
 if __name__ == "__main__":
     # testing
-    handle_interaction(do_post = True, press_length = 634)
+    handle_interaction(aws_client, do_post = True, press_length = 1)

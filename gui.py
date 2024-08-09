@@ -145,7 +145,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
     root.after(20, lambda:
-               slack.handle_interaction(do_post,
+               slack.handle_interaction(slack.aws_client, do_post,
                (current_time - PRESS_START) if PRESS_START is not None else 0))
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
