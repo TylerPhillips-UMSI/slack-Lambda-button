@@ -11,6 +11,8 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
+from PIL import Image, ImageTk
+
 import sys
 import time
 
@@ -89,6 +91,21 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
     root.bind("<ButtonRelease-1>", lambda event:
               handle_interaction(root, frame, style, do_post))
 
+
+def load_and_scale_image(root: tk.Tk, image_path: str) -> ImageTk.PhotoImage:
+    original_image = Image.open(image_path)
+
+    base = {"width": 1920, "height": 1080}
+    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
+
+    scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
+    new_size = (int(scale * original_image.width), int(scale * original_image.height))
+
+    resized_image = original_image.resize(new_size, Image.Resampling.LANCZOS)
+    photo_image = ImageTk.PhotoImage(resized_image)
+
+    return photo_image
+
 def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
@@ -98,13 +115,13 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
         style (ttk.Style): the style manager for our window
     """
 
-    oswald_48 = tkFont.Font(family="Oswald", size=64, weight="bold")
-    oswald_64 = tkFont.Font(family="Oswald", size=80, weight="bold")
+    oswald_64 = tkFont.Font(family="Oswald", size=scale_font(root, 64), weight="bold")
+    oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
 
-    style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
-    style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_48)
+    style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
+    style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
 
-    dude_img = tk.PhotoImage(file="images/duderstadt-logo.png")
+    dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
     dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
     dude_img_label.image = dude_img # keep a reference so it's still in memory
     dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
@@ -162,14 +179,14 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     # Countdown
     countdown_length_sec = 180
 
-    oswald_96 = tkFont.Font(family="Oswald", size=96, weight="bold")
-    oswald_80 = tkFont.Font(family="Oswald", size=80, weight="bold")
-    oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
-    monospace = tkFont.Font(family="Ubuntu Mono", size=32, weight="bold")
+    oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
+    oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
+    oswald_32 = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
+    monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 42), weight="bold")
 
     # Create a Text widget to display the countdown and timeout
     text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0, highlightthickness=0)
-    text_widget.place(relx=0.99, rely=0.99, anchor="se", width=605, height=75)  # Adjust as necessary
+    text_widget.place(relx=0.99, rely=0.99, anchor="se", width=605, height=75)
 
     # Configure tags for different fonts
     text_widget.tag_configure("timeout", font=oswald_32, foreground=MAIZE)
@@ -296,12 +313,16 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
                    label, start_color, end_color, current_step,
                    fade_duration_ms)
 
+def scale_font(root: tk.Tk, base_size: int) -> int:
+    base = {"width": 1920, "height": 1080}
+    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
+
+    calculated_scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
+    return int(calculated_scale * base_size)
+
 def display_gui() -> None:
     """
     Displays the TKinter GUI
-    
-    Args:
-        fullscreen (bool): whether to start the app in full screen
     """
     escape_display_period_ms = 5000
     do_post = False
@@ -317,12 +338,8 @@ def display_gui() -> None:
     display_frame = tk.Frame(root, bg=BLUE)
     display_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-    # load oswald, a U of M standard font
-    oswald_32 = tkFont.Font(family="Oswald", size=32, weight="bold")
-
     # configure style
     style = ttk.Style()
-    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
 
     # bind keys/buttons
     root.bind("<Escape>", lambda event: root.destroy())
@@ -331,11 +348,16 @@ def display_gui() -> None:
     if is_raspberry_pi:
         setup_gpio(root, display_frame, style, do_post)
 
+    display_main(display_frame, style)
+
+    # load oswald, a U of M standard font
+    oswald_32 = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
+
+    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
+
     # set up the actual items in the display
     escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
     escape_label.place(relx=0.99, rely=0.99, anchor="se")
-
-    display_main(display_frame, style)
 
     # Fade the escape label out
     root.after(escape_display_period_ms, fade_label, root,
