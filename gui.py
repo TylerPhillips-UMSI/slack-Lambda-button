@@ -181,26 +181,30 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
-    oswald_32 = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
-    monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 42), weight="bold")
+    oswald_36 = tkFont.Font(family="Oswald", size=scale_font(root, 36), weight="bold")
+    monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
 
     # Create a Text widget to display the countdown and timeout
-    text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0, highlightthickness=0)
-    text_widget.place(relx=0.99, rely=0.99, anchor="se", width=605, height=75)
+    text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0, highlightthickness=0, selectbackground=BLUE)
+    text_widget.place(relx=0.99, rely=0.99, anchor="se", relheight=0.07, relwidth = 0.355)
 
     # Configure tags for different fonts
-    text_widget.tag_configure("timeout", font=oswald_32, foreground=MAIZE)
+    text_widget.tag_configure("timeout", font=oswald_36, foreground=MAIZE)
     text_widget.tag_configure("countdown", font=monospace, foreground=MAIZE)
 
     seconds_left = countdown_length_sec
 
     def update_text_widget():
+        text_widget.config(state=tk.NORMAL) # enable editing
+
         text_widget.delete("1.0", tk.END)
 
         text_widget.insert(tk.END, f"{' ' if seconds_left < 100 else ''}", "countdown")
         text_widget.insert(tk.END, "Request times out in ", "timeout")
         text_widget.insert(tk.END, f"{seconds_left}", "countdown")
         text_widget.insert(tk.END, " seconds", "timeout")
+
+        text_widget.config(state=tk.DISABLED) # disable editing
 
     # Initial update
     update_text_widget()
@@ -351,9 +355,9 @@ def display_gui() -> None:
     display_main(display_frame, style)
 
     # load oswald, a U of M standard font
-    oswald_32 = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
+    oswald_42 = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
 
-    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_32)
+    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_42)
 
     # set up the actual items in the display
     escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
