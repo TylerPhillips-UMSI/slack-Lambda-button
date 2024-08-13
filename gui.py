@@ -333,7 +333,7 @@ def display_gui() -> None:
 
     # make a window
     root = tk.Tk()
-    # root.iconbitmap("images/lambda.ico")
+    root.config(cursor="none")
 
     root.attributes("-fullscreen", True)
     root.configure(bg=BLUE)
