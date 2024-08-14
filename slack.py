@@ -21,8 +21,8 @@ import boto3
 import sheets
 import aws
 
-is_raspberry_pi = not sys.platform.startswith("win32")
 aws_client = aws.setup_aws()
+is_raspberry_pi = not sys.platform.startswith("win32")
 
 # Read the configuration files
 try:
@@ -127,7 +127,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
     device_id = BUTTON_CONFIG["device_id"]
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
-    
+
     # device_mac = device_config[2]
     device_location = device_config[3]
     # device_function = device_config[5]

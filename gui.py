@@ -109,7 +109,7 @@ def scale_font(root: tk.Tk, base_size: int) -> int:
 
     return int(calculated_scale * base_size)
 
-def load_and_scale_image(root: tk.Tk, image_path: str) -> ImageTk.PhotoImage:
+def load_and_scale_image(root: tk.Tk, img: Image.Image) -> ImageTk.PhotoImage:
     """
     Uses PIL to rescale an image based on the size of the window
 
@@ -121,15 +121,13 @@ def load_and_scale_image(root: tk.Tk, image_path: str) -> ImageTk.PhotoImage:
         ImageTk.PhotoImage: the scaled PhotoImage for TKinter
     """
 
-    original_image = Image.open(image_path)
-
     base = {"width": 1920, "height": 1080}
     actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
 
     scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
-    new_size = (int(scale * original_image.width), int(scale * original_image.height))
+    new_size = (int(scale * img.width), int(scale * img.height))
 
-    resized_image = original_image.resize(new_size, Image.Resampling.LANCZOS)
+    resized_image = img.resize(new_size, Image.Resampling.LANCZOS)
     photo_image = ImageTk.PhotoImage(resized_image)
 
     return photo_image
@@ -149,10 +147,32 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
     style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
 
-    dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
-    dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
-    dude_img_label.image = dude_img # keep a reference so it's still in memory
-    dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
+    # dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
+    # dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
+    # dude_img_label.image = dude_img # keep a reference so it's still in memory
+    # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
+
+    frame_count = 136
+    frames = []
+
+    with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
+        for i in range(frame_count):
+            gif.seek(i)
+            frames.append(load_and_scale_image(root, gif.copy()))
+
+    dude_img_label = ttk.Label(root, image=frames[0], background=BLUE)
+
+    def update(index: int) -> None:
+        frame = frames[index]
+        index += 1
+
+        if index != frame_count:
+            dude_img_label.configure(image=frame)
+            root.after(20, update, index)
+
+    dude_img_label.place(relx=0.5, rely=0.36, anchor="center")
+
+    update(0)
 
     # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
     help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
@@ -295,7 +315,7 @@ def hex_to_rgb(hex_str: str) -> tuple:
         hex_str (str): the hex string to convert
 
     Returns:
-        The tuple our hex converts to
+        tuple: what our hex converts to
     """
 
     hex_str = hex_str.lstrip("#")
