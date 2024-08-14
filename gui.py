@@ -93,6 +93,17 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
 
 
 def load_and_scale_image(root: tk.Tk, image_path: str) -> ImageTk.PhotoImage:
+    """
+    Uses PIL to rescale an image based on the size of the window
+
+    Args:
+        root (tk.Tk): the root window
+        image_path (str): the image to load and scale
+
+    Returns:
+        ImageTk.PhotoImage: the scaled PhotoImage for TKinter
+    """
+
     original_image = Image.open(image_path)
 
     base = {"width": 1920, "height": 1080}
@@ -185,7 +196,8 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
 
     # Create a Text widget to display the countdown and timeout
-    text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0, highlightthickness=0, selectbackground=BLUE)
+    text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0, 
+                          highlightthickness=0, selectbackground=BLUE)
     text_widget.place(relx=0.99, rely=0.99, anchor="se", relheight=0.07, relwidth = 0.355)
 
     # Configure tags for different fonts
@@ -349,8 +361,8 @@ def display_gui() -> None:
     root.bind("<Escape>", lambda event: root.destroy())
     bind_presses(root, display_frame, style, do_post)
 
-    if is_raspberry_pi:
-        setup_gpio(root, display_frame, style, do_post)
+    # if is_raspberry_pi:
+    #     setup_gpio(root, display_frame, style, do_post)
 
     display_main(display_frame, style)
 
