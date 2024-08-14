@@ -234,11 +234,14 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     # Create a Text widget to display the countdown and timeout
     text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0,
                           highlightthickness=0, selectbackground=BLUE)
-    text_widget.place(relx=0.99, rely=0.99, anchor="se", relheight=0.07, relwidth = 0.355)
+    text_widget.place(relx=0.996, rely=0.99, anchor="se", relheight=0.07, relwidth=0.355)
 
     # Configure tags for different fonts
     text_widget.tag_configure("timeout", font=oswald_36, foreground=MAIZE)
     text_widget.tag_configure("countdown", font=monospace, foreground=MAIZE)
+
+    text_widget.tag_configure("right", justify="right")
+    text_widget.tag_add("right", "1.0", "end")
 
     seconds_left = countdown_length_sec
 
@@ -269,7 +272,8 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         if seconds_left > 0:
             root.after(1000, countdown)
         else:
-            text_widget.place_forget()
+            # text_widget.place_forget()
+            pass
 
     root.after(1000, countdown)
 
