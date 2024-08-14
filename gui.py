@@ -91,6 +91,23 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
     root.bind("<ButtonRelease-1>", lambda event:
               handle_interaction(root, frame, style, do_post))
 
+def scale_font(root: tk.Tk, base_size: int) -> int:
+    """
+    Scales a font based on the size of the window
+
+    Args:
+        root (tk.Tk): the root window
+        base_size (int): the size of the text at 1080p
+
+    Returns:
+        int: the scaled font's size
+    """
+    base = {"width": 1920, "height": 1080}
+    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
+
+    calculated_scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
+
+    return int(calculated_scale * base_size)
 
 def load_and_scale_image(root: tk.Tk, image_path: str) -> ImageTk.PhotoImage:
     """
@@ -156,7 +173,6 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         style (ttk.Style): the style manager for our window
         do_post (bool): whether or not to post to the Slack channel
     """
-    global PRESS_START
 
     # clear display
     for widget in frame.winfo_children():
@@ -196,7 +212,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
 
     # Create a Text widget to display the countdown and timeout
-    text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0, 
+    text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0,
                           highlightthickness=0, selectbackground=BLUE)
     text_widget.place(relx=0.99, rely=0.99, anchor="se", relheight=0.07, relwidth = 0.355)
 
@@ -328,13 +344,6 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
         frame.after(fade_duration_ms // fps, fade_label, frame,
                    label, start_color, end_color, current_step,
                    fade_duration_ms)
-
-def scale_font(root: tk.Tk, base_size: int) -> int:
-    base = {"width": 1920, "height": 1080}
-    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
-
-    calculated_scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
-    return int(calculated_scale * base_size)
 
 def display_gui() -> None:
     """
