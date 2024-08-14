@@ -12,7 +12,7 @@ import boto3
 
 def test_sns():
     # initialize Amazon SNS
-    sns_client = boto3.client("sns", region_name="us-east-2") 
+    sns_client = boto3.client("sns", region_name="us-east-2")
 
     # topic ARN
     topic_arn = ""
@@ -23,7 +23,7 @@ def test_sns():
     # create a subscription
     response = sns_client.subscribe(
         TopicArn=topic_arn,
-        Protocol="lambda",  # change protocol as needed ("http", "https", "email", "email-json", "sms", "application", "lambda", "sqs")
+        Protocol="lambda",
         Endpoint=endpoint
     )
 
@@ -65,10 +65,10 @@ def setup_aws() -> boto3.client:
     """
     try:
         with open("aws.json", "r", encoding="utf8") as file:
-            aws = json.load(file)
+            aws_config = json.load(file)
     except json.JSONDecodeError as e:
         print(e)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         with open("aws.json", "x", encoding="utf8") as file:
             print("aws.json not found, creating it for you...")
 
@@ -76,9 +76,9 @@ def setup_aws() -> boto3.client:
             json.dump(defaults, file)
         exit()
 
-    access_key = aws["aws_access_key"]
-    secret = aws["aws_secret"]
-    region = aws["region"]
+    access_key = aws_config["aws_access_key"]
+    secret = aws_config["aws_secret"]
+    region = aws_config["region"]
 
     client = boto3.client(
         "lambda",
