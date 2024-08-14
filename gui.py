@@ -7,14 +7,14 @@ Author:
 Nikki Hess - nkhess@umich.edu
 """
 
+# import sys
+import time
+
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
 from PIL import Image, ImageTk
-
-import sys
-import time
 
 import slack
 
@@ -23,53 +23,53 @@ BLUE = "#00274C"
 PRESS_START = None # for long button presses
 
 # only import GPIO and do GPIO operations on Pi
-is_raspberry_pi = not sys.platform.startswith("win32")
-if is_raspberry_pi:
-    import RPi.GPIO as GPIO # for Argon interactions
+# is_raspberry_pi = not sys.platform.startswith("win32")
+# if is_raspberry_pi:
+#     import RPi.GPIO as GPIO # for Argon interactions
 
-def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
-    """
-    Sets up GPIO event listeners for the Argon case's 4 buttons
+# def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
+#     """
+#     Sets up GPIO event listeners for the Argon case's 4 buttons
 
-    Args:
-        root (tk.Tk): the root window
-        frame (tk.Frame): the frame that we're putting widgets in
-        style (ttk.Style): the style class we're working with
-        do_post (bool): whether to post to the Slack channel
-    """
-    
-    button_1 = 16
-    button_2 = 20
-    button_3 = 21
-    button_4 = 22
+#     Args:
+#         root (tk.Tk): the root window
+#         frame (tk.Frame): the frame that we're putting widgets in
+#         style (ttk.Style): the style class we're working with
+#         do_post (bool): whether to post to the Slack channel
+#     """
 
-    # initial GPIO setup
-    GPIO.setmode(GPIO.BCM)
+#     button_1 = 16
+#     button_2 = 20
+#     button_3 = 21
+#     button_4 = 22
 
-    # add pull-up resistory to make readings more stable
-    GPIO.setup(button_1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(button_2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#     # initial GPIO setup
+#     GPIO.setmode(GPIO.BCM)
 
-    def handle_gpio_event(channel):
-        """
-        Handles GPIO events for falling and rising edges.
+#     # add pull-up resistory to make readings more stable
+#     GPIO.setup(button_1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#     GPIO.setup(button_2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#     GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#     GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-        Args:
-            channel (int): the GPIO channel that triggered the event
-        """
-        global PRESS_START
-        if GPIO.input(channel) == GPIO.LOW:
-            # Falling edge
-            PRESS_START = time.time()
-        else:
-            # Rising edge
-            handle_interaction(root, frame, style, do_post)
+#     def handle_gpio_event(channel):
+#         """
+#         Handles GPIO events for falling and rising edges.
 
-    # Add event detection for both edges
-    for button in [button_1, button_2, button_3, button_4]:
-        GPIO.add_event_detect(button, GPIO.BOTH, callback=handle_gpio_event, bouncetime=200)
+#         Args:
+#             channel (int): the GPIO channel that triggered the event
+#         """
+#         global PRESS_START
+#         if GPIO.input(channel) == GPIO.LOW:
+#             # Falling edge
+#             PRESS_START = time.time()
+#         else:
+#             # Rising edge
+#             handle_interaction(root, frame, style, do_post)
+
+#     # Add event detection for both edges
+#     for button in [button_1, button_2, button_3, button_4]:
+#         GPIO.add_event_detect(button, GPIO.BOTH, callback=handle_gpio_event, bouncetime=200)
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -370,11 +370,11 @@ def display_gui() -> None:
     # run
     root.mainloop()
 
-    if is_raspberry_pi:
-        try:
-            GPIO.cleanup() # finally, clean everything up
-        except Exception:
-            pass # okay, don't clean everything up
+    # if is_raspberry_pi:
+    #     try:
+    #         GPIO.cleanup() # finally, clean everything up
+    #     except Exception:
+    #         pass # okay, don't clean everything up
 
 if __name__ == "__main__":
     display_gui()
