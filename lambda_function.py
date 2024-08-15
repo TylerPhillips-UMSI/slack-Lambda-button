@@ -55,8 +55,10 @@ def lambda_handler(event: dict, context: object):
     # there is a bug where subtype is currently missing when the event is dispatched via the events API
     # until fixed, we need to verify that it has a thread_ts, which is unique to message replies here
     if event_type == "message" and event.get("message").get("thread_ts") is not None:
+        message = event["message"]
         handle_message_replied(event)
     elif event_type == "reaction_added":
+        message = event["reaction"]
         handle_reaction_added(event)
     elif event_type == "post":
         channel_id = event["channel_id"]
@@ -65,7 +67,7 @@ def lambda_handler(event: dict, context: object):
 
     return {
         "statusCode": 200,
-        "body": json.dumps({"status": "success"})
+        "body": message # message or reaction
     }
 
 def handle_message_replied(event: dict) -> bool:
