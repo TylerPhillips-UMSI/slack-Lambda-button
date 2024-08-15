@@ -43,6 +43,14 @@ def lambda_handler(event: dict, context: object):
     # headers = event["headers"]
     event_type = event.get("type")
 
+    # slack url verification
+    # respond with the challenge to verify the url
+    if "challenge" in event:
+        return {
+            'statusCode': 200,
+            'body': event["challenge"]
+        }
+
     # according to THIS page: https://api.slack.com/events/message/message_replied
     # there is a bug where subtype is currently missing when the event is dispatched via the events API
     # until fixed, we need to verify that it has a thread_ts, which is unique to message replies here
