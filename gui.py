@@ -142,17 +142,18 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
     """
 
     def load_contents():
-        oswald_64 = tkFont.Font(family="Oswald", size=scale_font(root, 64), weight="bold")
+        oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
         oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
 
-        style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
-        style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
+        style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
+        style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
 
+        # KEEP THIS CODE IN CASE WE NEED TO GO BACK TO A STATIC IMAGE!
         # dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
         # dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
         # dude_img_label.image = dude_img # keep a reference so it's still in memory
         # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
-        
+
         frame_count = 136
         frames = []
 
@@ -175,13 +176,13 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
 
         update(0)
 
-        # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
-        help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
-        help_label.place(relx=0.5, rely=0.56, anchor="center")
-
-        instruction_label = ttk.Label(root, text="Tap the screen or press a button!",
+        instruction_label = ttk.Label(root, text="Tap the screen!",
                                     style="Instructions.TLabel")
-        instruction_label.place(relx=0.5, rely=0.68, anchor="center")
+        instruction_label.place(relx=0.5, rely=0.71, anchor="center")
+
+        # help label has to be rendered after img to be seen (layering)
+        help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
+        help_label.place(relx=0.5, rely=0.57, anchor="center")
 
     root.after(20, load_contents) # add delay to make gif not affect countdown?
 
@@ -226,7 +227,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         do_post (bool): whether to post to Slack
     """
 
-    # Countdown
+    # countdown
     countdown_length_sec = 180
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
@@ -234,15 +235,16 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     oswald_36 = tkFont.Font(family="Oswald", size=scale_font(root, 36), weight="bold")
     monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
 
-    # Create a Text widget to display the countdown and timeout
+    # create a text widget to display the countdown and timeout
     text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0,
                           highlightthickness=0, selectbackground=BLUE)
     text_widget.place(relx=0.996, rely=0.99, anchor="se", relheight=0.07, relwidth=0.355)
 
-    # Configure tags for different fonts
+    # configure tags for different fonts
     text_widget.tag_configure("timeout", font=oswald_36, foreground=MAIZE)
     text_widget.tag_configure("countdown", font=monospace, foreground=MAIZE)
 
+    # configure tag for right justification
     text_widget.tag_configure("right", justify="right")
     text_widget.tag_add("right", "1.0", "end")
 
