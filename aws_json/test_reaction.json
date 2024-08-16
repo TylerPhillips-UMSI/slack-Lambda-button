@@ -1,7 +1,9 @@
 {
+  "body": {
     "type": "reaction_added",
     "reaction": "white_check_mark",
     "item": {
-      "ts": "1722969514.591739"
+      "ts": "1723827456.677489"
     }
   }
+}

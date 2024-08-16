@@ -141,46 +141,49 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
         style (ttk.Style): the style manager for our window
     """
 
-    oswald_64 = tkFont.Font(family="Oswald", size=scale_font(root, 64), weight="bold")
-    oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
+    def load_contents():
+        oswald_64 = tkFont.Font(family="Oswald", size=scale_font(root, 64), weight="bold")
+        oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
 
-    style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
-    style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
+        style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
+        style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_64)
 
-    # dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
-    # dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
-    # dude_img_label.image = dude_img # keep a reference so it's still in memory
-    # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
+        # dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
+        # dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
+        # dude_img_label.image = dude_img # keep a reference so it's still in memory
+        # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
+        
+        frame_count = 136
+        frames = []
 
-    frame_count = 136
-    frames = []
+        with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
+            for i in range(frame_count):
+                gif.seek(i)
+                frames.append(load_and_scale_image(root, gif.copy()))
 
-    with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
-        for i in range(frame_count):
-            gif.seek(i)
-            frames.append(load_and_scale_image(root, gif.copy()))
+        dude_img_label = ttk.Label(root, image=frames[0], background=BLUE)
 
-    dude_img_label = ttk.Label(root, image=frames[0], background=BLUE)
+        def update(index: int) -> None:
+            frame = frames[index]
+            index += 1
 
-    def update(index: int) -> None:
-        frame = frames[index]
-        index += 1
+            if index != frame_count:
+                dude_img_label.configure(image=frame)
+                root.after(20, update, index)
 
-        if index != frame_count:
-            dude_img_label.configure(image=frame)
-            root.after(20, update, index)
+        dude_img_label.place(relx=0.5, rely=0.36, anchor="center")
 
-    dude_img_label.place(relx=0.5, rely=0.36, anchor="center")
+        update(0)
 
-    update(0)
+        # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
+        help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
+        help_label.place(relx=0.5, rely=0.56, anchor="center")
 
-    # HELP LABEL HAS TO BE RENDERED AFTER IMG TO BE SEEN
-    help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
-    help_label.place(relx=0.5, rely=0.56, anchor="center")
+        instruction_label = ttk.Label(root, text="Tap the screen or press a button!",
+                                    style="Instructions.TLabel")
+        instruction_label.place(relx=0.5, rely=0.68, anchor="center")
 
-    instruction_label = ttk.Label(root, text="Tap the screen or press a button!",
-                                  style="Instructions.TLabel")
-    instruction_label.place(relx=0.5, rely=0.68, anchor="center")
+    root.after(20, load_contents) # add delay to make gif not affect countdown?
 
 def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                        do_post: bool) -> None:

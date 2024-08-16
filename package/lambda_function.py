@@ -40,32 +40,43 @@ def lambda_handler(event: dict, context: object):
     Returns:
         dict: a response object for the HTTP request
     """
-    # headers = event["headers"]
-    event_type = event.get("type")
+    event_body = event.get("body", "{}")
+
+    # slack sends body as a json-string, but our local test code doesn't
+    # so let's handle both here
+    if isinstance(event_body, str):
+        event_body = json.loads(event_body)
+
+    event_type = event_body.get("type")
 
     # slack url verification
     # respond with the challenge to verify the url
-    if "challenge" in event:
+    if event_type == "url_verification":
         return {
-            'statusCode': 200,
-            'body': event["challenge"]
+            "statusCode": 200,
+            "body": event_body.get("challenge", "")
         }
 
     # according to THIS page: https://api.slack.com/events/message/message_replied
     # there is a bug where subtype is currently missing when the event is dispatched via the events API
     # until fixed, we need to verify that it has a thread_ts, which is unique to message replies here
     if event_type == "message" and event.get("message").get("thread_ts") is not None:
-        handle_message_replied(event)
+        message = event_body.get("message", "")
+        handle_message_replied(event_body)
     elif event_type == "reaction_added":
-        handle_reaction_added(event)
+        message = event_body.get("reaction", "")
+        handle_reaction_added(event_body)
     elif event_type == "post":
-        channel_id = event["channel_id"]
-        message = event["message"]
+        channel_id = event_body.get("channel_id", "")
+        message = event_body.get("message", "")
         post_to_slack(channel_id, message)
 
     return {
         "statusCode": 200,
-        "body": json.dumps({"status": "success"})
+        "headers": {
+            "Content-Type": "text/plain"
+        },
+        "body": message # message or reaction
     }
 
 def handle_message_replied(event: dict) -> bool:
@@ -242,7 +253,7 @@ def post_to_slack(channel_id: str, message: str):
     message_to_channel[message_id] = channel_id
 
     print(f"Message posted with ID: {message_id}")
-    
+
     return message_id
 
 if __name__ == "__main__":
@@ -260,10 +271,21 @@ if __name__ == "__main__":
     try:
         with open("aws_json/test_reaction.json", "r", encoding="utf8") as test_file:
             test_event = json.load(test_file)
-            test_event["item"]["ts"] = pending_messages[0]
+            test_event["body"]["item"]["ts"] = pending_messages[0]
             response = lambda_handler(test_event, None)
             print("Response:", response)
     except FileNotFoundError as e:
-        print("test_post.json not found.")
+        print("test_reaction.json not found.")
     except json.JSONDecodeError as e:
-        print("Error decoding test_post.json:", e)
+        print("Error decoding test_reaction.json:", e)
+
+    try:
+        with open("aws_json/test_challenge.json", "r", encoding="utf8") as test_file:
+            test_event = json.load(test_file)
+            response = lambda_handler(test_event, None)
+            print("Response:", response)
+    except FileNotFoundError as e:
+        print("test_challenge.json not found.")
+    except json.JSONDecodeError as e:
+        print("Error decoding test_challenge.json:", e)
+    
