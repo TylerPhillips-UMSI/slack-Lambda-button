@@ -10,5 +10,8 @@ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-
 :: Install boto3
 pip install --upgrade boto3
 
+:: Install PIL
+pip install --upgrade pillow
+
 echo All done! You may now run slack-Lambda-button via "python gui.py"
 pause
