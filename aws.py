@@ -44,9 +44,11 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: 
     print("Posting message to Slack via AWS...")
 
     payload = {
-        "type": "post",
-        "message": message,
-        "channel_id": channel_id
+        "body": {
+            "type": "post",
+            "message": message,
+            "channel_id": channel_id
+        }
     }
     payload = json.dumps(payload) # convert dict to string
 

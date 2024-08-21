@@ -379,7 +379,7 @@ def display_gui() -> None:
     Displays the TKinter GUI
     """
     escape_display_period_ms = 5000
-    do_post = False
+    do_post = True
 
     # make a window
     root = tk.Tk()
