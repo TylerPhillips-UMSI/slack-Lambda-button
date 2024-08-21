@@ -17,6 +17,7 @@ import tkinter.font as tkFont
 from PIL import Image, ImageTk
 
 import slack
+import aws
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
@@ -295,7 +296,14 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     root.update_idletasks() # gets stuff to load all at once
 
     three_min = countdown_length_sec * 1000 # seconds * ms
-    root.after(three_min, lambda: revert_to_main(root, frame, style, do_post))
+
+    def after_3_min():
+        nonlocal root, frame, style, do_post
+
+        revert_to_main(root, frame, style, do_post)
+        # aws.mark_message_timed_out(slack.aws_client, message_id, channel_id)
+
+    root.after(three_min, after_3_min)
 
 def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """

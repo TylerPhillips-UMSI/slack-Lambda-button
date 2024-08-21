@@ -10,34 +10,14 @@ Nikki Hess (nkhess@umich.edu)
 import json
 import boto3
 
-def test_sns():
-    # initialize Amazon SNS
-    sns_client = boto3.client("sns", region_name="us-east-2")
-
-    # topic ARN
-    topic_arn = ""
-
-    # endpoint for sns
-    endpoint = ""
-
-    # create a subscription
-    response = sns_client.subscribe(
-        TopicArn=topic_arn,
-        Protocol="lambda",
-        Endpoint=endpoint
-    )
-
-    # Print the response
-    print(response)
-
 def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: bool):
     """
     Posts a message to Slack using chat.postMessage
 
     Args:
         aws_client (boto3.client): the AWS client we're using
-        channel (str): the Slack channel to send the message to
         message (str): the message to send
+        channel_id (str): the Slack channel to send the message to
         dev (bool): whether we're using the dev AWS instance
     """
 
@@ -55,6 +35,34 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: 
     # the function name is apparently the name of the instance ¯\_(ツ)_/¯
     aws_client.invoke(
         FunctionName="slackLambda" + "-dev" if dev else "",
+        Payload=payload
+    )
+
+def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
+    """
+    Edits a message on Slack to mark it timed out
+
+    Args:
+        aws_client (boto3.client): the AWS client we're using
+        message_id (str): the message id to edit
+        channel_id (str): the Slack channel to send the message to
+        dev (bool): whether we're using the dev AWS instance
+    """
+
+    print(f"Marking message {message_id} as resolved...")
+
+    payload = {
+        "body": {
+            "type": "timeout",
+            "message_id": message_id,
+            "channel_id": channel_id
+        }
+    }
+    payload = json.dumps(payload) # convert dict to string
+
+    # invoke the AWS Lambda function
+    aws_client.invoke(
+        FunctionName="slackLabmda" + "-dev" if dev else "",
         Payload=payload
     )
 
