@@ -9,6 +9,37 @@ Nikki Hess (nkhess@umich.edu)
 
 import json
 import boto3
+from flask import Flask, request
+import requests
+
+app = Flask(__name__)
+
+try:
+    with open("aws.json", "r", encoding="utf8") as file:
+        aws_config = json.load(file)
+except json.JSONDecodeError as e:
+    print(e)
+except FileNotFoundError:
+    with open("aws.json", "x", encoding="utf8") as file:
+        print("aws.json not found, creating it for you...")
+
+        defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
+        json.dump(defaults, file)
+    exit()
+
+@app.route("/sns", methods=["POST"])
+def on_receive_sns_message():
+    """
+    Handles receiving post requests from SNS
+    """
+
+    data = request.get_json(force=True)
+
+    print("Message received:", data)
+
+    return {
+        "statusCode": 200
+    }
 
 def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: bool):
     """
@@ -73,18 +104,6 @@ def setup_aws() -> boto3.client:
     Returns:
         boto3.client: the AWS client
     """
-    try:
-        with open("aws.json", "r", encoding="utf8") as file:
-            aws_config = json.load(file)
-    except json.JSONDecodeError as e:
-        print(e)
-    except FileNotFoundError:
-        with open("aws.json", "x", encoding="utf8") as file:
-            print("aws.json not found, creating it for you...")
-
-            defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
-            json.dump(defaults, file)
-        exit()
 
     access_key = aws_config["aws_access_key"]
     secret = aws_config["aws_secret"]
@@ -99,12 +118,24 @@ def setup_aws() -> boto3.client:
 
     return client
 
+def setup_flask(port: int):
+    """
+    Sets up the flask http server (to receive SNS messages)
+
+    Args:
+        port (int): the port to use
+    """
+    app.run(host="0.0.0.0", port=port)
+
 if __name__ == "__main__":
     aws = setup_aws()
 
-    post_to_slack(
-        aws,
-        "This is a test from Nikki's local machine",
-        "C05T5H5GK54",
-        True
-    )
+    # # post_to_slack(
+    # #     aws,
+    # #     "This is a test from Nikki's local machine",
+    # #     "C05T5H5GK54",
+    # #     True
+    # )
+
+    # run the flask app
+    app.run(host="0.0.0.0", port=25565)
