@@ -24,21 +24,27 @@ import aws
 aws_client = aws.setup_aws()
 is_raspberry_pi = not sys.platform.startswith("win32")
 
+config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
+
 # Read the configuration files
 try:
-    with open("slack.json", "r", encoding="utf8") as file:
-        CONFIG = json.load(file)
-except json.JSONDecodeError as e:
-    print(e)
-except FileNotFoundError as e:
-    with open("slack.json", "x", encoding="utf8") as file:
-        print("slack.json not found, creating it for you...")
+    with open("config/slack.json", "r", encoding="utf8") as file:
+        slack_config = json.load(file)
 
-        defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
-        json.dump(defaults, file)
+        # if we don't have all required keys, populate the defaults
+        if not all(slack_config.get(key) for key in config_defaults.keys()):
+            with open("config/slack.json", "w", encoding="utf8") as write_file:
+                json.dump(config_defaults, write_file)
+except (FileNotFoundError, json.JSONDecodeError):
+    with open("config/slack.json", "w+", encoding="utf8") as file:
+        print("config/slack.json not found or wrong, creating + populating defaults...")
 
-BUTTON_CONFIG = CONFIG["button_config"]
-BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
+        json.dump(config_defaults, file)
+        print("Please fill out config/slack.json before running again.")
+    exit()
+
+BUTTON_CONFIG = slack_config["button_config"]
+BOT_OAUTH_TOKEN = slack_config["bot_oauth_token"]
 
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}

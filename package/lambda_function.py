@@ -56,6 +56,12 @@ def lambda_handler(event: dict, context: object):
             "statusCode": 200,
             "body": event_body.get("challenge", "")
         }
+    # if we're not doing URL verification, we need to go one level deeper
+    elif event_type == "event_callback":
+        event_body = event_body.get("event", "{}")
+        event_type = event_body.get("type")
+    
+    print("type:", event_type)
 
     # according to THIS page: https://api.slack.com/events/message/message_replied
     # there is a bug where subtype is currently missing when the event is dispatched via the events API
@@ -70,6 +76,10 @@ def lambda_handler(event: dict, context: object):
         channel_id = event_body.get("channel_id", "")
         message = event_body.get("message", "")
         post_to_slack(channel_id, message)
+    else:
+        return {
+            "statusCode": 404
+        }
 
     return {
         "statusCode": 200,

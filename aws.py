@@ -9,37 +9,7 @@ Nikki Hess (nkhess@umich.edu)
 
 import json
 import boto3
-from flask import Flask, request
 import requests
-
-app = Flask(__name__)
-
-try:
-    with open("aws.json", "r", encoding="utf8") as file:
-        aws_config = json.load(file)
-except json.JSONDecodeError as e:
-    print(e)
-except FileNotFoundError:
-    with open("aws.json", "x", encoding="utf8") as file:
-        print("aws.json not found, creating it for you...")
-
-        defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
-        json.dump(defaults, file)
-    exit()
-
-@app.route("/sns", methods=["POST"])
-def on_receive_sns_message():
-    """
-    Handles receiving post requests from SNS
-    """
-
-    data = request.get_json(force=True)
-
-    print("Message received:", data)
-
-    return {
-        "statusCode": 200
-    }
 
 def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: bool):
     """
@@ -97,13 +67,35 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         Payload=payload
     )
 
-def setup_aws() -> boto3.client:
+def setup_aws(port: int) -> boto3.client:
     """
     Sets up the AWS client
+
+    Args:
+        port (int): the port for Flask to run on
 
     Returns:
         boto3.client: the AWS client
     """
+
+    global aws_config
+
+    config_defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
+    try:
+        with open("config/aws.json", "r", encoding="utf8") as file:
+            aws_config = json.load(file)
+
+            # if we don't have all required keys, populate the defaults
+            if not all(aws_config.get(key) for key in list(config_defaults.keys())):
+                with open("config/aws.json", "w", encoding="utf8") as write_file:
+                    json.dump(config_defaults, write_file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        with open("config/aws.json", "w+", encoding="utf8") as file:
+            print("config/aws.json not found or wrong, creating + populating defaults...")
+
+            json.dump(config_defaults, file)
+            print("Please fill out config/aws.json before running again.")
+        exit()
 
     access_key = aws_config["aws_access_key"]
     secret = aws_config["aws_secret"]
@@ -118,15 +110,6 @@ def setup_aws() -> boto3.client:
 
     return client
 
-def setup_flask(port: int):
-    """
-    Sets up the flask http server (to receive SNS messages)
-
-    Args:
-        port (int): the port to use
-    """
-    app.run(host="0.0.0.0", port=port)
-
 if __name__ == "__main__":
     aws = setup_aws()
 
@@ -136,6 +119,3 @@ if __name__ == "__main__":
     # #     "C05T5H5GK54",
     # #     True
     # )
-
-    # run the flask app
-    app.run(host="0.0.0.0", port=25565)

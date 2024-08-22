@@ -13,8 +13,5 @@ pip install --upgrade boto3
 :: Install PIL
 pip install --upgrade pillow
 
-:: Install flask
-pip install --upgrade flask
-
 echo All done! You may now run slack-Lambda-button via "python gui.py"
 pause
