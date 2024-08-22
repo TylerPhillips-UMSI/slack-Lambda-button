@@ -10,6 +10,7 @@ Nikki Hess (nkhess@umich.edu)
 import json
 import requests
 from threading import Timer
+import boto3
 
 # Read the configuration files
 try:
@@ -23,6 +24,37 @@ except FileNotFoundError as e:
 
         defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
         json.dump(defaults, file)
+
+
+CONFIG_DEFAULTS = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
+try:
+    with open("config/aws.json", "r", encoding="utf8") as file:
+        AWS_CONFIG = json.load(file)
+
+        # if we don't have all required keys, populate the defaults
+        if not all(AWS_CONFIG.get(key) for key in list(CONFIG_DEFAULTS.keys())):
+            with open("config/aws.json", "w", encoding="utf8") as write_file:
+                json.dump(CONFIG_DEFAULTS, write_file)
+except (FileNotFoundError, json.JSONDecodeError):
+    with open("config/aws.json", "w+", encoding="utf8") as file:
+        print("config/aws.json not found or wrong, creating + populating defaults...")
+
+        json.dump(CONFIG_DEFAULTS, file)
+        print("Please fill out config/aws.json before running again.")
+    exit()
+
+ACCESS_KEY = AWS_CONFIG["aws_access_key"]
+SECRET = AWS_CONFIG["aws_secret"]
+REGION = AWS_CONFIG["region"]
+SNS_ARN = AWS_CONFIG["sns_arn"]
+
+# set up sqs client
+SNS_CLIENT = boto3.client(
+    "sns",
+    aws_access_key_id=ACCESS_KEY,
+    aws_secret_access_key=SECRET,
+    region_name=REGION
+)
 
 BUTTON_CONFIG = CONFIG["button_config"]
 BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
@@ -134,6 +166,18 @@ def handle_message_replied(event: dict) -> bool:
 
             message_append(channel_id, thread_ts, "*(resolved)*")
 
+            sns_message = {
+                "ts": thread_ts,
+                "reply_text": reply_text
+            }
+
+            SNS_CLIENT.publish(
+                TopicArn=SNS_ARN,
+                Message=json.dumps(sns_message),
+                MessageGroupId="Resolved",
+                Subject="Message Resolved Notification"
+            )
+
             resolved = True
         else:
             print("Response did not contain :white_check_mark: or :+1:")
@@ -170,6 +214,18 @@ def handle_reaction_added(event: dict) -> bool:
             pending_messages.remove(message_id)
 
             message_append(channel_id, message_id, "*(resolved)*")
+
+            sns_message = {
+                "ts": message_id,
+                "reply_text": reaction
+            }
+
+            SNS_CLIENT.publish(
+                TopicArn=SNS_ARN,
+                Message=json.dumps(sns_message),
+                MessageGroupId="Resolved",
+                Subject="Message Resolved Notification"
+            )
         else:
             print("Reaction was not white_check_mark or +1")
     else:
@@ -290,6 +346,17 @@ def message_timeout(channel_id: str, message_id: str):
     if message_id in pending_messages:
         pending_messages.remove(message_id)
         message_append(channel_id, message_id, "*(timed out)*")
+
+        sns_message = {
+            "ts": message_id
+        }
+
+        SNS_CLIENT.publish(
+            TopicArn=SNS_ARN,
+            Message=json.dumps(sns_message),
+            MessageGroupId="Timeout",
+            Subject="Message Timed Out Notification"
+        )
 
         print(f"Message {message_id} has timed out")
 

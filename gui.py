@@ -188,7 +188,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
 
     # countdown
-    countdown_length_sec = 180
+    countdown_length_sec = 15
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
@@ -240,6 +240,17 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
             # text_widget.place_forget()
             pass
 
+        # if we have a message from SQS, make sure it's ours and then use it
+        if aws.LATEST_MESSAGE:
+            ts = aws.LATEST_MESSAGE["ts"]
+            reply_text = aws.LATEST_MESSAGE["reply_text"]
+
+            if ts in pending_message_ids:
+                received_label.configure(text=reply_text)
+                waiting_label.configure(text="")
+
+                aws.LATEST_MESSAGE = None
+
     root.after(1000, countdown)
 
     style.configure("Received.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
@@ -251,16 +262,6 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     waiting_label = ttk.Label(frame, text="Updates will be provided on this screen.",
                               style="Waiting.TLabel")
     waiting_label.place(relx=0.5, rely=0.60, anchor="center")
-
-    # if we have a message from SQS, make sure it's ours and then use it
-    if aws.LATEST_MESSAGE:
-        split = aws.LATEST_MESSAGE.split()
-
-        # split[0] should be a timestamp
-        if split[0] in pending_message_ids:
-            received_label.configure(text=split[1])
-
-            aws.LATEST_MESSAGE = None
 
     root.update_idletasks() # gets stuff to load all at once
 

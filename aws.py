@@ -7,7 +7,7 @@ Author:
 Nikki Hess (nkhess@umich.edu)
 """
 
-import concurrent.futures # for sqs polling
+import threading # for sqs polling
 
 import json
 import boto3
@@ -86,11 +86,11 @@ def poll_sqs(sqs_client: boto3.client):
     """
     global LATEST_MESSAGE
 
-    queue_url = "" # fill in later pls
+    queue_url = "https://sqs.us-east-2.amazonaws.com/225753854445/slackLambda-dev.fifo"
 
     while True:
         response = sqs_client.receive_message(
-            QueueURL=queue_url,
+            QueueUrl=queue_url,
             MaxNumberOfMessages=1,
             WaitTimeSeconds=10
         )
@@ -103,6 +103,10 @@ def poll_sqs(sqs_client: boto3.client):
 
             # process the message
             message_body = message["Body"]
+            message_body = json.loads(message_body) # load into JSON
+            message_body = message_body["Message"]
+            message_body = json.loads(message_body) # load into JSON again
+
             print("SQS message received:", message_body)
             LATEST_MESSAGE = message_body
 
@@ -157,13 +161,17 @@ def setup_aws() -> boto3.client:
         aws_secret_access_key=secret,
         region_name=region
     )
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.submit(poll_sqs, sqs_client)
+   
+    polling_thread = threading.Thread(target=poll_sqs, args=(sqs_client,), daemon=True)
+    polling_thread.start()
 
     return client, sqs_client
 
 if __name__ == "__main__":
     lambda_client, sqs_client = setup_aws()
+
+    while True:
+        pass
 
     # # post_to_slack(
     # #     aws,
