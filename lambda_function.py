@@ -163,7 +163,9 @@ def handle_reaction_added(event: dict) -> bool:
     resolved = False
 
     if message_id in pending_messages:
-        if reaction in ("white_check_mark", "+1"): # no colons in Slack reaction values
+        # no colons in Slack reaction values
+        # +1 in reaction because there are multiple possible skin tones
+        if reaction == "white_check_mark" or "+1" in reaction:
             print(f"Message {message_id} has received a resolving reaction. Marking as resolved.")
             pending_messages.remove(message_id)
 
