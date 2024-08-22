@@ -13,13 +13,13 @@ from threading import Timer
 
 # Read the configuration files
 try:
-    with open("slack.json", "r", encoding="utf8") as file:
+    with open("config/slack.json", "r", encoding="utf8") as file:
         CONFIG = json.load(file)
 except json.JSONDecodeError as e:
     print(e)
 except FileNotFoundError as e:
-    with open("slack.json", "x", encoding="utf8") as file:
-        print("slack.json not found, creating it for you...")
+    with open("config/slack.json", "x", encoding="utf8") as file:
+        print("config/slack.json not found, creating it for you...")
 
         defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
         json.dump(defaults, file)
@@ -94,15 +94,12 @@ def lambda_handler(event: dict, context: object):
         "headers": {
             "Content-Type": "text/plain"
         },
-        "body": message, # message or reaction
+        "body": message,
+        "posted_message_id": posted_message_id or None,
+        "posted_message_channel": posted_message_channel or None
     }
 
-    if posted_message_id:
-        response["posted_message_id"] = posted_message_id
-    if posted_message_channel:
-        response["posted_message_channel"] = posted_message_channel
-
-    return 
+    return response
 
 def handle_message_replied(event: dict) -> bool:
     """
@@ -305,25 +302,4 @@ if __name__ == "__main__":
         print("test_post.json not found.")
     except json.JSONDecodeError as e:
         print("Error decoding test_post.json:", e)
-
-    # try:
-    #     with open("aws_json/test_reaction.json", "r", encoding="utf8") as test_file:
-    #         test_event = json.load(test_file)
-    #         test_event["body"]["item"]["ts"] = pending_messages[0]
-    #         response = lambda_handler(test_event, None)
-    #         print("Response:", response)
-    # except FileNotFoundError as e:
-    #     print("test_reaction.json not found.")
-    # except json.JSONDecodeError as e:
-    #     print("Error decoding test_reaction.json:", e)
-
-    # try:
-    #     with open("aws_json/test_challenge.json", "r", encoding="utf8") as test_file:
-    #         test_event = json.load(test_file)
-    #         response = lambda_handler(test_event, None)
-    #         print("Response:", response)
-    # except FileNotFoundError as e:
-    #     print("test_challenge.json not found.")
-    # except json.JSONDecodeError as e:
-    #     print("Error decoding test_challenge.json:", e)
     
