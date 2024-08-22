@@ -43,6 +43,10 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: 
         Payload=payload
     )
 
+    # extract our custom response
+    response = response["Payload"].read().decode("utf-8")
+    response = json.loads(response)
+
     # this should be guaranteed with a post payload
     return response.get("posted_message_id"), response.get("posted_message_channel")
 

@@ -184,7 +184,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
     else:
         print(f"\nMESSAGE\n--------\n{final_message}")
 
-        return None
+        return None, None
 
 if __name__ == "__main__":
     # testing

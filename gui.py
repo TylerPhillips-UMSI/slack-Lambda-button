@@ -166,7 +166,6 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     current_time = time.time()
 
     def post():
-        global pending_message_ids
         message_id, channel_id = slack.handle_interaction(slack.lambda_client, do_post,
                (current_time - PRESS_START) if PRESS_START is not None else 0)
 
@@ -189,7 +188,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
 
     # countdown
-    countdown_length_sec = 10
+    countdown_length_sec = 180
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
