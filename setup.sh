@@ -9,9 +9,10 @@ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-
 # Install boto3
 pip install --upgrade boto3
 
-# force upgrade to lgpio, which doesn't error out for this project
-sudo apt remove python3-rpi.gpio
-sudo apt update
-sudo apt install python3-rpi-lgpio
+# Install PIL
+pip install --upgrade pillow
+
+# Install flask
+pip install --upgrade flask
 
 echo -e "\e[All done! You may now run slack-Lambda-button via \"python gui.py\"\e[39m"
