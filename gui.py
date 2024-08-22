@@ -237,17 +237,17 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         if seconds_left > 0:
             root.after(1000, countdown)
         else:
-            # text_widget.place_forget()
-            pass
+            return
 
         # if we have a message from SQS, make sure it's ours and then use it
         if aws.LATEST_MESSAGE:
             ts = aws.LATEST_MESSAGE["ts"]
+            reply_author = aws.LATEST_MESSAGE["reply_author"]
             reply_text = aws.LATEST_MESSAGE["reply_text"]
 
             if ts in pending_message_ids:
-                received_label.configure(text=reply_text)
-                waiting_label.configure(text="")
+                received_label.configure(text=f"From {reply_author}")
+                waiting_label.configure(text=reply_text)
 
                 aws.LATEST_MESSAGE = None
 

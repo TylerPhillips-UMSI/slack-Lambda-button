@@ -133,6 +133,37 @@ def lambda_handler(event: dict, context: object):
 
     return response
 
+def get_user_display_name(user_id: str):
+    """
+    Gets a user's display name from Slack via their ID, falls back on real name
+
+    Args:
+        user_id (str): the user ID to gather info on
+
+    Returns:
+        str: the user's display name/real name/Unknown
+    """
+    url = "https://slack.com/api/users.info"
+    headers = {
+        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}",
+        "Content-Type": "application/json; charset=utf-8"
+    }
+    params = {
+        "user": user_id
+    }
+
+    # 10 second timeout
+    response = requests.get(url, headers=headers, params=params, timeout=10)
+    user_info = response.json()
+
+    if not user_info.get("ok"):
+        raise RuntimeError(f"Error retrieving message: {user_info['error']}")
+
+    user_name = user_info["user"].get("real_name", "Unknown")
+    display_name = user_info["user"]["profile"].get("display_name", user_name)
+
+    return display_name
+
 def handle_message_replied(event: dict) -> bool:
     """
     Handles messages for lambda_handler
@@ -156,6 +187,10 @@ def handle_message_replied(event: dict) -> bool:
     reply_ts = replies[reply_count - 1].get("ts")
     reply_text = get_message_content(channel_id, reply_ts)
 
+    # gather information about the author
+    author_id = message.get("user")
+    author_name = get_user_display_name(author_id)
+
     # going to be used in the GUI to determine if we should display the message
     resolved = False
 
@@ -168,7 +203,8 @@ def handle_message_replied(event: dict) -> bool:
 
             sns_message = {
                 "ts": thread_ts,
-                "reply_text": reply_text
+                "reply_text": reply_text,
+                "reply_author": author_name
             }
 
             SNS_CLIENT.publish(
@@ -206,6 +242,10 @@ def handle_reaction_added(event: dict) -> bool:
     # going to be used in the GUI to determine if we should display the message
     resolved = False
 
+    # gather information about the author
+    author_id = event.get("user")
+    author_name = get_user_display_name(author_id)
+
     if message_id in pending_messages:
         # no colons in Slack reaction values
         # +1 in reaction because there are multiple possible skin tones
@@ -217,7 +257,8 @@ def handle_reaction_added(event: dict) -> bool:
 
             sns_message = {
                 "ts": message_id,
-                "reply_text": reaction
+                "reply_text": reaction,
+                "reply_author": author_name
             }
 
             SNS_CLIENT.publish(

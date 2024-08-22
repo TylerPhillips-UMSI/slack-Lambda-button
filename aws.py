@@ -108,7 +108,8 @@ def poll_sqs(sqs_client: boto3.client):
             message_body = json.loads(message_body) # load into JSON again
 
             print("SQS message received:", message_body)
-            LATEST_MESSAGE = message_body
+            if "reply_text" in message_body.keys():
+                LATEST_MESSAGE = message_body
 
             # delete from queue after process
             sqs_client.delete_message(
