@@ -24,6 +24,7 @@ BLUE = "#00274C"
 PRESS_START = None # for long button presses
 
 pending_message_ids = [] # pending messages from this device specifically
+message_to_channel = {} # maps message ids to channel ids
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -166,10 +167,11 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
 
     def post():
         global pending_message_ids
-        message_id = slack.handle_interaction(slack.aws_client, do_post,
+        message_id, channel_id = slack.handle_interaction(slack.lambda_client, do_post,
                (current_time - PRESS_START) if PRESS_START is not None else 0)
 
         pending_message_ids.append(message_id)
+        message_to_channel[message_id] = channel_id
 
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
@@ -187,7 +189,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
 
     # countdown
-    countdown_length_sec = 180
+    countdown_length_sec = 10
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
@@ -269,7 +271,11 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         nonlocal root, frame, style, do_post
 
         revert_to_main(root, frame, style, do_post)
-        # aws.mark_message_timed_out(slack.aws_client, message_id, channel_id)
+
+        message_id = pending_message_ids[0]
+        channel_id = message_to_channel[message_id]
+        
+        aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
 
     after_id = root.after(three_min, after_3_min) # to be used for cancelling when a checkmark is received
 

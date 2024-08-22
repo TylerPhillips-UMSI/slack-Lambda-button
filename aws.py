@@ -43,7 +43,8 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: 
         Payload=payload
     )
 
-    return response.get("posted_message_id") # this should be guaranteed with a post payload
+    # this should be guaranteed with a post payload
+    return response.get("posted_message_id"), response.get("posted_message_channel")
 
 def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
     """
@@ -56,11 +57,11 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         dev (bool): whether we're using the dev AWS instance
     """
 
-    print(f"Marking message {message_id} as resolved...")
+    print(f"Marking message {message_id} as timed out...")
 
     payload = {
         "body": {
-            "type": "timeout",
+            "type": "message_timeout",
             "message_id": message_id,
             "channel_id": channel_id
         }
@@ -69,7 +70,7 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
 
     # invoke the AWS Lambda function
     aws_client.invoke(
-        FunctionName="slackLabmda" + "-dev" if dev else "",
+        FunctionName="slackLambda" + "-dev" if dev else "",
         Payload=payload
     )
 

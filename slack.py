@@ -21,7 +21,7 @@ import boto3
 import sheets
 import aws
 
-aws_client = aws.setup_aws()
+lambda_client, sqs_client = aws.setup_aws()
 is_raspberry_pi = not sys.platform.startswith("win32")
 
 config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
@@ -176,11 +176,11 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
 
     # if we post to Slack, we need to go through AWS and return a message id
     if do_post:
-        message_id = aws.post_to_slack(aws_client, final_message, device_channel_id, True)
+        message_id, channel_id = aws.post_to_slack(aws_client, final_message, device_channel_id, True)
 
         LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
 
-        return message_id
+        return message_id, channel_id
     else:
         print(f"\nMESSAGE\n--------\n{final_message}")
 
@@ -188,4 +188,4 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
 
 if __name__ == "__main__":
     # testing
-    handle_interaction(aws_client, do_post = True, press_length = 1)
+    handle_interaction(lambda_client, do_post = True, press_length = 1)

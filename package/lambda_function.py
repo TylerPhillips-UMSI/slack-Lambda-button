@@ -9,6 +9,7 @@ Nikki Hess (nkhess@umich.edu)
 
 import json
 import requests
+from threading import Timer
 
 # Read the configuration files
 try:
@@ -63,6 +64,9 @@ def lambda_handler(event: dict, context: object):
     
     print("type:", event_type)
 
+    posted_message_id = None
+    posted_message_channel = None
+
     # according to THIS page: https://api.slack.com/events/message/message_replied
     # there is a bug where subtype is currently missing when the event is dispatched via the events API
     # until fixed, we need to verify that it has a thread_ts, which is unique to message replies here
@@ -75,19 +79,30 @@ def lambda_handler(event: dict, context: object):
     elif event_type == "post":
         channel_id = event_body.get("channel_id", "")
         message = event_body.get("message", "")
-        post_to_slack(channel_id, message)
+        posted_message_id, posted_message_channel = post_to_slack(channel_id, message)
+    elif event_type == "message_timeout":
+        channel_id = event_body.get("channel_id", "")
+        message_id = event_body.get("message_id", "")
+        message_timeout(channel_id, message_id)
     else:
         return {
             "statusCode": 404
         }
 
-    return {
+    response = {
         "statusCode": 200,
         "headers": {
             "Content-Type": "text/plain"
         },
-        "body": message # message or reaction
+        "body": message, # message or reaction
     }
+
+    if posted_message_id:
+        response["posted_message_id"] = posted_message_id
+    if posted_message_channel:
+        response["posted_message_channel"] = posted_message_channel
+
+    return 
 
 def handle_message_replied(event: dict) -> bool:
     """
@@ -120,7 +135,7 @@ def handle_message_replied(event: dict) -> bool:
             print(f"Message thread {thread_ts} has received a resolving response. Marking as resolved.")
             pending_messages.remove(thread_ts)
 
-            mark_message_resolved(channel_id, thread_ts)
+            message_append(channel_id, thread_ts, "*(resolved)*")
 
             resolved = True
         else:
@@ -155,7 +170,7 @@ def handle_reaction_added(event: dict) -> bool:
             print(f"Message {message_id} has received a resolving reaction. Marking as resolved.")
             pending_messages.remove(message_id)
 
-            mark_message_resolved(channel_id, message_id)
+            message_append(channel_id, message_id, "*(resolved)*")
         else:
             print("Reaction was not white_check_mark or +1")
     else:
@@ -199,16 +214,16 @@ def get_message_content(channel_id: str, message_id: str):
 
     return messages[0].get("text")
 
-def mark_message_resolved(channel_id: str, ts: str):
+def message_append(channel_id: str, ts: str, to_append: str):
     """
-    Marks a message as resolved by appending (RESOLVED) to the message text.
+    Marks a message as resolved by appending (resolved) to the message text.
 
     Args:
         channel_id (str): the ID of the channel containing the message
         ts (str): the timestamp of the message to update
     """
     existing_content = get_message_content(channel_id, ts)
-    updated_content = f"{existing_content} (RESOLVED)"
+    updated_content = f"{existing_content} {to_append}"
 
     url = "https://slack.com/api/chat.update"
     headers = {
@@ -264,7 +279,20 @@ def post_to_slack(channel_id: str, message: str):
 
     print(f"Message posted with ID: {message_id}")
 
-    return message_id
+    return message_id, channel_id
+
+def message_timeout(channel_id: str, message_id: str):
+    """
+    Marks a message as timed out (usually after 3 minutes)
+    Args:
+        channel_id (str): the Slack channel ID where the message was posted
+        message_id (str): the message ID/timestamp to get content from
+    """
+    if message_id in pending_messages:
+        pending_messages.remove(message_id)
+        message_append(channel_id, message_id, "*(timed out)*")
+
+        print(f"Message {message_id} has timed out")
 
 if __name__ == "__main__":
     # Run test
@@ -278,24 +306,24 @@ if __name__ == "__main__":
     except json.JSONDecodeError as e:
         print("Error decoding test_post.json:", e)
 
-    try:
-        with open("aws_json/test_reaction.json", "r", encoding="utf8") as test_file:
-            test_event = json.load(test_file)
-            test_event["body"]["item"]["ts"] = pending_messages[0]
-            response = lambda_handler(test_event, None)
-            print("Response:", response)
-    except FileNotFoundError as e:
-        print("test_reaction.json not found.")
-    except json.JSONDecodeError as e:
-        print("Error decoding test_reaction.json:", e)
+    # try:
+    #     with open("aws_json/test_reaction.json", "r", encoding="utf8") as test_file:
+    #         test_event = json.load(test_file)
+    #         test_event["body"]["item"]["ts"] = pending_messages[0]
+    #         response = lambda_handler(test_event, None)
+    #         print("Response:", response)
+    # except FileNotFoundError as e:
+    #     print("test_reaction.json not found.")
+    # except json.JSONDecodeError as e:
+    #     print("Error decoding test_reaction.json:", e)
 
-    try:
-        with open("aws_json/test_challenge.json", "r", encoding="utf8") as test_file:
-            test_event = json.load(test_file)
-            response = lambda_handler(test_event, None)
-            print("Response:", response)
-    except FileNotFoundError as e:
-        print("test_challenge.json not found.")
-    except json.JSONDecodeError as e:
-        print("Error decoding test_challenge.json:", e)
+    # try:
+    #     with open("aws_json/test_challenge.json", "r", encoding="utf8") as test_file:
+    #         test_event = json.load(test_file)
+    #         response = lambda_handler(test_event, None)
+    #         print("Response:", response)
+    # except FileNotFoundError as e:
+    #     print("test_challenge.json not found.")
+    # except json.JSONDecodeError as e:
+    #     print("Error decoding test_challenge.json:", e)
     

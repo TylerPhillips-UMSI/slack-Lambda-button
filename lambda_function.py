@@ -65,6 +65,7 @@ def lambda_handler(event: dict, context: object):
     print("type:", event_type)
 
     posted_message_id = None
+    posted_message_channel = None
 
     # according to THIS page: https://api.slack.com/events/message/message_replied
     # there is a bug where subtype is currently missing when the event is dispatched via the events API
@@ -78,7 +79,11 @@ def lambda_handler(event: dict, context: object):
     elif event_type == "post":
         channel_id = event_body.get("channel_id", "")
         message = event_body.get("message", "")
-        posted_message_id = post_to_slack(channel_id, message)
+        posted_message_id, posted_message_channel = post_to_slack(channel_id, message)
+    elif event_type == "message_timeout":
+        channel_id = event_body.get("channel_id", "")
+        message_id = event_body.get("message_id", "")
+        message_timeout(channel_id, message_id)
     else:
         return {
             "statusCode": 404
@@ -94,6 +99,8 @@ def lambda_handler(event: dict, context: object):
 
     if posted_message_id:
         response["posted_message_id"] = posted_message_id
+    if posted_message_channel:
+        response["posted_message_channel"] = posted_message_channel
 
     return 
 
@@ -272,7 +279,7 @@ def post_to_slack(channel_id: str, message: str):
 
     print(f"Message posted with ID: {message_id}")
 
-    return message_id
+    return message_id, channel_id
 
 def message_timeout(channel_id: str, message_id: str):
     """
