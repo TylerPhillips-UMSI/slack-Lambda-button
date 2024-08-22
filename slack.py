@@ -116,7 +116,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     return formatted_time
 
-def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_length: float = 0) -> None:
+def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_length: float = 0) -> str | None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
@@ -124,6 +124,9 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
         aws_client (boto3.client): the AWS client we're using
         do_post (bool): whether to post to the Slack or just log in console, for debug
         press_length (float): how long was the button pressed?
+
+    Returns:
+        the posted message id, if there is one OR None
     """
 
     press_type = "LONG" if press_length > 2 else "SINGLE"
@@ -171,13 +174,17 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
 
-    # sort of mocking, I guess? I circumvent API calls, but it's not REALLY mocking is it?
+    # if we post to Slack, we need to go through AWS and return a message id
     if do_post:
-        aws.post_to_slack(aws_client, final_message, device_channel_id, True)
+        message_id = aws.post_to_slack(aws_client, final_message, device_channel_id, True)
 
         LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
+
+        return message_id
     else:
         print(f"\nMESSAGE\n--------\n{final_message}")
+
+        return None
 
 if __name__ == "__main__":
     # testing

@@ -23,54 +23,7 @@ MAIZE = "#FFCB05"
 BLUE = "#00274C"
 PRESS_START = None # for long button presses
 
-# only import GPIO and do GPIO operations on Pi
-# is_raspberry_pi = not sys.platform.startswith("win32")
-# if is_raspberry_pi:
-#     import RPi.GPIO as GPIO # for Argon interactions
-
-# def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
-#     """
-#     Sets up GPIO event listeners for the Argon case's 4 buttons
-
-#     Args:
-#         root (tk.Tk): the root window
-#         frame (tk.Frame): the frame that we're putting widgets in
-#         style (ttk.Style): the style class we're working with
-#         do_post (bool): whether to post to the Slack channel
-#     """
-
-#     button_1 = 16
-#     button_2 = 20
-#     button_3 = 21
-#     button_4 = 22
-
-#     # initial GPIO setup
-#     GPIO.setmode(GPIO.BCM)
-
-#     # add pull-up resistory to make readings more stable
-#     GPIO.setup(button_1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#     GPIO.setup(button_2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#     GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#     GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-#     def handle_gpio_event(channel):
-#         """
-#         Handles GPIO events for falling and rising edges.
-
-#         Args:
-#             channel (int): the GPIO channel that triggered the event
-#         """
-#         global PRESS_START
-#         if GPIO.input(channel) == GPIO.LOW:
-#             # Falling edge
-#             PRESS_START = time.time()
-#         else:
-#             # Rising edge
-#             handle_interaction(root, frame, style, do_post)
-
-#     # Add event detection for both edges
-#     for button in [button_1, button_2, button_3, button_4]:
-#         GPIO.add_event_detect(button, GPIO.BOTH, callback=handle_gpio_event, bouncetime=200)
+pending_message_ids = [] # pending messages from this device specifically
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -211,11 +164,16 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
 
     current_time = time.time()
 
+    def post():
+        global pending_message_ids
+        message_id = slack.handle_interaction(slack.aws_client, do_post,
+               (current_time - PRESS_START) if PRESS_START is not None else 0)
+
+        pending_message_ids.append(message_id)
+
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
-    root.after(20, lambda:
-               slack.handle_interaction(slack.aws_client, do_post,
-               (current_time - PRESS_START) if PRESS_START is not None else 0))
+    root.after(20, post)
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -293,6 +251,16 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                               style="Waiting.TLabel")
     waiting_label.place(relx=0.5, rely=0.60, anchor="center")
 
+    # if we have a message from SQS, make sure it's ours and then use it
+    if aws.latest_message:
+        split = aws.latest_message.split()
+        
+        # split[0] should be a timestamp
+        if split[0] in pending_message_ids:
+            received_label.configure(text=split[1])
+
+            aws.latest_message = None
+
     root.update_idletasks() # gets stuff to load all at once
 
     three_min = countdown_length_sec * 1000 # seconds * ms
@@ -303,7 +271,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         revert_to_main(root, frame, style, do_post)
         # aws.mark_message_timed_out(slack.aws_client, message_id, channel_id)
 
-    root.after(three_min, after_3_min)
+    after_id = root.after(three_min, after_3_min) # to be used for cancelling when a checkmark is received
 
 def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """

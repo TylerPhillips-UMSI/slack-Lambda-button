@@ -64,6 +64,8 @@ def lambda_handler(event: dict, context: object):
     
     print("type:", event_type)
 
+    posted_message_id = None
+
     # according to THIS page: https://api.slack.com/events/message/message_replied
     # there is a bug where subtype is currently missing when the event is dispatched via the events API
     # until fixed, we need to verify that it has a thread_ts, which is unique to message replies here
@@ -76,19 +78,24 @@ def lambda_handler(event: dict, context: object):
     elif event_type == "post":
         channel_id = event_body.get("channel_id", "")
         message = event_body.get("message", "")
-        post_to_slack(channel_id, message)
+        posted_message_id = post_to_slack(channel_id, message)
     else:
         return {
             "statusCode": 404
         }
 
-    return {
+    response = {
         "statusCode": 200,
         "headers": {
             "Content-Type": "text/plain"
         },
-        "body": message # message or reaction
+        "body": message, # message or reaction
     }
+
+    if posted_message_id:
+        response["posted_message_id"] = posted_message_id
+
+    return 
 
 def handle_message_replied(event: dict) -> bool:
     """

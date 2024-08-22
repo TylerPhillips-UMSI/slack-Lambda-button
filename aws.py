@@ -11,6 +11,10 @@ import json
 import boto3
 import requests
 
+import concurrent.futures # for sqs polling
+
+latest_message = None # latest SQS message
+
 def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: bool):
     """
     Posts a message to Slack using chat.postMessage
@@ -34,10 +38,12 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: 
     payload = json.dumps(payload) # convert dict to string
 
     # the function name is apparently the name of the instance ¯\_(ツ)_/¯
-    aws_client.invoke(
+    response = aws_client.invoke(
         FunctionName="slackLambda" + "-dev" if dev else "",
         Payload=payload
     )
+
+    return response.get("posted_message_id") # this should be guaranteed with a post payload
 
 def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
     """
@@ -67,15 +73,47 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         Payload=payload
     )
 
-def setup_aws(port: int) -> boto3.client:
+def poll_sqs(sqs_client: boto3.client):
+    """
+    Periodically polls SQS, will run on a separate thread
+
+    Args:
+        sqs_client (boto3.client): the SQS client we're using
+    """
+    global latest_message
+
+    queue_url = "" # fill in later pls
+
+    while True:
+        response = sqs_client.receive_message(
+            QueueURL=queue_url,
+            MaxNumberOfMessages=1,
+            WaitTimeSeconds=10
+        )
+
+        # has to be obtained as a list first
+        message = response.get("Messages", [])
+
+        if message:
+            message = message[0] # get the first item
+
+            # process the message
+            message_body = message["Body"]
+            print("SQS message received:", message_body)
+            latest_message = message_body
+
+            # delete from queue after process
+            sqs_client.delete_message(
+                QueueUrl=queue_url,
+                ReceiptHandle=message["ReceiptHandle"]
+            )
+
+def setup_aws() -> boto3.client:
     """
     Sets up the AWS client
 
-    Args:
-        port (int): the port for Flask to run on
-
     Returns:
-        boto3.client: the AWS client
+        the Lambda client, the SQS client
     """
 
     global aws_config
@@ -101,6 +139,7 @@ def setup_aws(port: int) -> boto3.client:
     secret = aws_config["aws_secret"]
     region = aws_config["region"]
 
+    # set up lambda client
     client = boto3.client(
         "lambda",
         aws_access_key_id=access_key,
@@ -108,10 +147,20 @@ def setup_aws(port: int) -> boto3.client:
         region_name=region
     )
 
-    return client
+    # set up sqs client
+    sqs_client = boto3.client(
+        "sqs",
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret,
+        region_name=region
+    )
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(poll_sqs, sqs_client)
+
+    return client, sqs_client
 
 if __name__ == "__main__":
-    aws = setup_aws()
+    lambda_client, sqs_client = setup_aws()
 
     # # post_to_slack(
     # #     aws,
