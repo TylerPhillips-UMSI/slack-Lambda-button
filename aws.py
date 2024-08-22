@@ -7,13 +7,12 @@ Author:
 Nikki Hess (nkhess@umich.edu)
 """
 
-import json
-import boto3
-import requests
-
 import concurrent.futures # for sqs polling
 
-latest_message = None # latest SQS message
+import json
+import boto3
+
+LATEST_MESSAGE = None # latest SQS message
 
 def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: bool):
     """
@@ -85,7 +84,7 @@ def poll_sqs(sqs_client: boto3.client):
     Args:
         sqs_client (boto3.client): the SQS client we're using
     """
-    global latest_message
+    global LATEST_MESSAGE
 
     queue_url = "" # fill in later pls
 
@@ -105,7 +104,7 @@ def poll_sqs(sqs_client: boto3.client):
             # process the message
             message_body = message["Body"]
             print("SQS message received:", message_body)
-            latest_message = message_body
+            LATEST_MESSAGE = message_body
 
             # delete from queue after process
             sqs_client.delete_message(
@@ -120,16 +119,15 @@ def setup_aws() -> boto3.client:
     Returns:
         the Lambda client, the SQS client
     """
-
-    global aws_config
+    global AWS_CONFIG
 
     config_defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
     try:
         with open("config/aws.json", "r", encoding="utf8") as file:
-            aws_config = json.load(file)
+            AWS_CONFIG = json.load(file)
 
             # if we don't have all required keys, populate the defaults
-            if not all(aws_config.get(key) for key in list(config_defaults.keys())):
+            if not all(AWS_CONFIG.get(key) for key in list(config_defaults.keys())):
                 with open("config/aws.json", "w", encoding="utf8") as write_file:
                     json.dump(config_defaults, write_file)
     except (FileNotFoundError, json.JSONDecodeError):
@@ -140,9 +138,9 @@ def setup_aws() -> boto3.client:
             print("Please fill out config/aws.json before running again.")
         exit()
 
-    access_key = aws_config["aws_access_key"]
-    secret = aws_config["aws_secret"]
-    region = aws_config["region"]
+    access_key = AWS_CONFIG["aws_access_key"]
+    secret = AWS_CONFIG["aws_secret"]
+    region = AWS_CONFIG["region"]
 
     # set up lambda client
     client = boto3.client(
@@ -160,7 +158,7 @@ def setup_aws() -> boto3.client:
         region_name=region
     )
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(poll_sqs, sqs_client)
+        executor.submit(poll_sqs, sqs_client)
 
     return client, sqs_client
 

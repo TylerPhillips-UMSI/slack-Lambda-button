@@ -253,14 +253,14 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     waiting_label.place(relx=0.5, rely=0.60, anchor="center")
 
     # if we have a message from SQS, make sure it's ours and then use it
-    if aws.latest_message:
-        split = aws.latest_message.split()
-        
+    if aws.LATEST_MESSAGE:
+        split = aws.LATEST_MESSAGE.split()
+
         # split[0] should be a timestamp
         if split[0] in pending_message_ids:
             received_label.configure(text=split[1])
 
-            aws.latest_message = None
+            aws.LATEST_MESSAGE = None
 
     root.update_idletasks() # gets stuff to load all at once
 
@@ -273,10 +273,11 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
         message_id = pending_message_ids[0]
         channel_id = message_to_channel[message_id]
-        
+
         aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
 
-    after_id = root.after(three_min, after_3_min) # to be used for cancelling when a checkmark is received
+    # to be used for cancelling when a checkmark is received
+    after_id = root.after(three_min, after_3_min)
 
 def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -312,19 +313,19 @@ def hex_to_rgb(hex_str: str) -> tuple:
     return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
+def interpolate(start_color: tuple, end_color: tuple, time_: int) -> tuple:
     """
     Interpolates between two colors based on time
 
     Args:
         start_color (tuple): the color to start with
         end_color (tuple): the color to end with
-        t (int): the amount of time that has passed
+        time_ (int): the amount of time that has passed
 
     Returns:
         An interpolated tuple somewhere between our two colors
     """
-    return tuple(int(a + (b - a) * t) for a, b in zip(start_color, end_color))
+    return tuple(int(a + (b - a) * time_) for a, b in zip(start_color, end_color))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
 def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple,
@@ -344,10 +345,10 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
     # set a framerate for the fade
     fps = 60
 
-    t = (1.0 / fps) * current_step
+    time_ = (1.0 / fps) * current_step
     current_step += 1
 
-    new_color = interpolate(start_color, end_color, t)
+    new_color = interpolate(start_color, end_color, time_)
     label.configure(foreground=f"#{new_color[0]:02x}{new_color[1]:02x}{new_color[2]:02x}")
 
     if current_step <= fps:
