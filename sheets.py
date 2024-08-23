@@ -15,6 +15,7 @@ from typing import List, TextIO#, Tuple
 import traceback
 
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -97,10 +98,18 @@ def do_oauth_flow() -> Credentials:
 		except (ValueError, json.JSONDecodeError):
 			pass # just don't get creds
 	
+	
 	# If there are no (valid) credentials available, let the user log in.
 	if not creds or not creds.valid:
 		if creds and creds.expired and creds.refresh_token:
-			creds.refresh(Request())
+			try:
+				creds.refresh(Request())
+			except RefreshError: # google RefreshError, need new token
+				os.remove("config/token.json") # clear expired token
+				flow = InstalledAppFlow.from_client_secrets_file(
+					"config/credentials.json", SCOPES
+				)
+				creds = flow.run_local_server(port=0)
 		else:
 			flow = InstalledAppFlow.from_client_secrets_file(
 				"config/credentials.json", SCOPES
