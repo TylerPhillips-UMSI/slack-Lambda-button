@@ -14,7 +14,8 @@ import boto3
 
 LATEST_MESSAGE = None # latest SQS message
 
-def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: bool):
+def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, 
+                  device_id: str, dev: bool):
     """
     Posts a message to Slack using chat.postMessage
 
@@ -31,7 +32,8 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, dev: 
         "body": {
             "type": "post",
             "message": message,
-            "channel_id": channel_id
+            "channel_id": channel_id,
+            "device_id": device_id
         }
     }
     payload = json.dumps(payload) # convert dict to string
@@ -77,12 +79,13 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         Payload=payload
     )
 
-def poll_sqs(sqs_client: boto3.client):
+def poll_sqs(sqs_client: boto3.client, device_id: str):
     """
     Periodically polls SQS, will run on a separate thread
 
     Args:
         sqs_client (boto3.client): the SQS client we're using
+        device_id (str): the id of the device we're on
     """
     global LATEST_MESSAGE
 
@@ -96,10 +99,12 @@ def poll_sqs(sqs_client: boto3.client):
         )
 
         # has to be obtained as a list first
-        message = response.get("Messages", [])
+        messages = response.get("Messages", [])
 
-        if message:
-            message = message[0] # get the first item
+        if messages:
+            message = messages[0] # get the first item
+
+            print(message)
 
             # process the message
             message_body = message["Body"]
@@ -143,9 +148,27 @@ def setup_aws() -> boto3.client:
             print("Please fill out config/aws.json before running again.")
         exit()
 
+    config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
+    try:
+        with open("config/slack.json", "r", encoding="utf8") as file:
+            SLACK_CONFIG = json.load(file)
+
+            # if we don't have all required keys, populate the defaults
+            if not all(SLACK_CONFIG.get(key) for key in list(config_defaults.keys())):
+                with open("config/slack.json", "w", encoding="utf8") as write_file:
+                    json.dump(config_defaults, write_file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        with open("config/slack.json", "w+", encoding="utf8") as file:
+            print("config/slack.json not found or wrong, creating + populating defaults...")
+
+            json.dump(config_defaults, file)
+            print("Please fill out config/slack.json before running again.")
+        exit()
+
     access_key = AWS_CONFIG["aws_access_key"]
     secret = AWS_CONFIG["aws_secret"]
     region = AWS_CONFIG["region"]
+    device_id = SLACK_CONFIG["button_config"]["device_id"]
 
     # set up lambda client
     client = boto3.client(
@@ -163,7 +186,7 @@ def setup_aws() -> boto3.client:
         region_name=region
     )
    
-    polling_thread = threading.Thread(target=poll_sqs, args=(sqs_client,), daemon=True)
+    polling_thread = threading.Thread(target=poll_sqs, args=(sqs_client, device_id), daemon=True)
     polling_thread.start()
 
     return client, sqs_client

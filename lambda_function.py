@@ -48,7 +48,7 @@ SECRET = AWS_CONFIG["aws_secret"]
 REGION = AWS_CONFIG["region"]
 SNS_ARN = AWS_CONFIG["sns_arn"]
 
-# set up sqs client
+# set up sns client
 SNS_CLIENT = boto3.client(
     "sns",
     aws_access_key_id=ACCESS_KEY,
@@ -61,6 +61,7 @@ BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
 
 pending_messages = []
 message_to_channel = {} # pairs message ids with channel ids
+message_to_device_id = {} # pairs message ids with device ids
 
 def lambda_handler(event: dict, context: object):
     """
@@ -93,7 +94,7 @@ def lambda_handler(event: dict, context: object):
     elif event_type == "event_callback":
         event_body = event_body.get("event", "{}")
         event_type = event_body.get("type")
-    
+
     print("type:", event_type)
 
     posted_message_id = None
@@ -111,7 +112,8 @@ def lambda_handler(event: dict, context: object):
     elif event_type == "post":
         channel_id = event_body.get("channel_id", "")
         message = event_body.get("message", "")
-        posted_message_id, posted_message_channel = post_to_slack(channel_id, message)
+        device_id = event_body.get("device_id", "")
+        posted_message_id, posted_message_channel = post_to_slack(channel_id, message, device_id)
     elif event_type == "message_timeout":
         channel_id = event_body.get("channel_id", "")
         message_id = event_body.get("message_id", "")
@@ -210,7 +212,7 @@ def handle_message_replied(event: dict) -> bool:
             SNS_CLIENT.publish(
                 TopicArn=SNS_ARN,
                 Message=json.dumps(sns_message),
-                MessageGroupId="Resolved",
+                MessageGroupId=message_to_device_id[thread_ts], # original device
                 Subject="Message Resolved Notification"
             )
 
@@ -264,7 +266,7 @@ def handle_reaction_added(event: dict) -> bool:
             SNS_CLIENT.publish(
                 TopicArn=SNS_ARN,
                 Message=json.dumps(sns_message),
-                MessageGroupId="Resolved",
+                MessageGroupId=message_to_device_id[message_id], # original device
                 Subject="Message Resolved Notification"
             )
         else:
@@ -343,7 +345,7 @@ def message_append(channel_id: str, ts: str, to_append: str):
 
     return response_data
 
-def post_to_slack(channel_id: str, message: str):
+def post_to_slack(channel_id: str, message: str, device_id: str):
     """
     Posts a message to Slack using chat.postMessage
 
@@ -372,6 +374,7 @@ def post_to_slack(channel_id: str, message: str):
     message_id = response_data.get("ts")
     pending_messages.append(message_id)
     message_to_channel[message_id] = channel_id
+    message_to_device_id[message_id] = device_id
 
     print(f"Message posted with ID: {message_id}")
 
@@ -387,17 +390,6 @@ def message_timeout(channel_id: str, message_id: str):
     if message_id in pending_messages:
         pending_messages.remove(message_id)
         message_append(channel_id, message_id, "*(timed out)*")
-
-        sns_message = {
-            "ts": message_id
-        }
-
-        SNS_CLIENT.publish(
-            TopicArn=SNS_ARN,
-            Message=json.dumps(sns_message),
-            MessageGroupId="Timeout",
-            Subject="Message Timed Out Notification"
-        )
 
         print(f"Message {message_id} has timed out")
 
