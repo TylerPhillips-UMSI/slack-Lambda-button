@@ -117,6 +117,7 @@ def lambda_handler(event: dict, context: object):
     elif event_type == "message_timeout":
         channel_id = event_body.get("channel_id", "")
         message_id = event_body.get("message_id", "")
+        message = "message_timeout"
         message_timeout(channel_id, message_id)
     else:
         return {

@@ -279,10 +279,11 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
         revert_to_main(root, frame, style, do_post)
 
-        message_id = pending_message_ids[0]
-        channel_id = message_to_channel[message_id]
+        if len(pending_message_ids) > 0:
+            message_id = pending_message_ids[0]
+            channel_id = message_to_channel[message_id]
 
-        aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
+            aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
 
     # to be used for cancelling when a checkmark is received
     after_id = root.after(three_min, after_3_min)
