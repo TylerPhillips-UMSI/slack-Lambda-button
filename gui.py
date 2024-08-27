@@ -188,7 +188,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
 
     # countdown
-    countdown_length_sec = 15
+    countdown_length_sec = 25
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
@@ -233,12 +233,6 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         seconds_left -= 1
         update_text_widget()
 
-        # schedule countdown until seconds_left is 1
-        if seconds_left > 0:
-            root.after(1000, countdown)
-        else:
-            return
-
         # if we have a message from SQS, make sure it's ours and then use it
         if aws.LATEST_MESSAGE:
             ts = aws.LATEST_MESSAGE["ts"]
@@ -246,10 +240,23 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
             reply_text = aws.LATEST_MESSAGE["reply_text"]
 
             if ts in pending_message_ids:
-                received_label.configure(text=f"From {reply_author}")
-                waiting_label.configure(text=reply_text)
+                # if no resolving reaction/emoji, display message
+                if not "white_check_mark" in reply_text and not "+1" in reply_text:
+                    received_label.configure(text=f"From {reply_author}")
+                    waiting_label.configure(text=reply_text)
 
-                aws.LATEST_MESSAGE = None
+                    aws.LATEST_MESSAGE = None
+                # else revert to main and cancel this countdown
+                else:
+                    revert_to_main(root, frame, style, do_post)
+                    aws.LATEST_MESSAGE = None
+                    return
+
+        # schedule countdown until seconds_left is 1
+        if seconds_left > 0:
+            root.after(1000, countdown)
+        else:
+            return
 
     root.after(1000, countdown)
 
