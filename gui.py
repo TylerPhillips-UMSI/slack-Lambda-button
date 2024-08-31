@@ -16,6 +16,8 @@ import tkinter.font as tkFont
 
 from PIL import Image, ImageTk
 
+import simpleaudio as sa
+
 import slack
 import aws
 
@@ -25,6 +27,9 @@ PRESS_START = None # for long button presses
 
 pending_message_ids = [] # pending messages from this device specifically
 message_to_channel = {} # maps message ids to channel ids
+
+INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
+RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -172,6 +177,9 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         pending_message_ids.append(message_id)
         message_to_channel[message_id] = channel_id
 
+    play_obj = INTERACT_SOUND.play()
+    play_obj.wait_done()
+
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
     root.after(20, post)
@@ -246,6 +254,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     waiting_label.configure(text=reply_text)
 
                     aws.LATEST_MESSAGE = None
+
+                    play_obj = RECEIVE_SOUND.play()
+                    play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
                     revert_to_main(root, frame, style, do_post)
