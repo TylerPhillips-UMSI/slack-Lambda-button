@@ -236,6 +236,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     # do a timeout countdown
     def countdown():
         nonlocal seconds_left # allows us to access seconds_left in here
+        nonlocal root, frame, style, do_post
 
         # decrement seconds left and set the label's text
         seconds_left -= 1
@@ -261,7 +262,19 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                 else:
                     revert_to_main(root, frame, style, do_post)
                     aws.LATEST_MESSAGE = None
-                    return
+
+                # either way, return
+                return
+
+        if seconds_left <= 0:
+
+            revert_to_main(root, frame, style, do_post)
+
+            if len(pending_message_ids) > 0:
+                message_id = pending_message_ids[0]
+                channel_id = message_to_channel[message_id]
+
+                aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
 
         # schedule countdown until seconds_left is 1
         if seconds_left > 0:
@@ -285,19 +298,19 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     three_min = countdown_length_sec * 1000 # seconds * ms
 
-    def after_3_min():
-        nonlocal root, frame, style, do_post
+    # def after_3_min():
+    #     nonlocal root, frame, style, do_post
 
-        revert_to_main(root, frame, style, do_post)
+    #     revert_to_main(root, frame, style, do_post)
 
-        if len(pending_message_ids) > 0:
-            message_id = pending_message_ids[0]
-            channel_id = message_to_channel[message_id]
+    #     if len(pending_message_ids) > 0:
+    #         message_id = pending_message_ids[0]
+    #         channel_id = message_to_channel[message_id]
 
-            aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
+    #         aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
 
-    # to be used for cancelling when a checkmark is received
-    after_id = root.after(three_min, after_3_min)
+    # # to be used for cancelling when a checkmark is received
+    # after_id = root.after(three_min, after_3_min)
 
 def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
