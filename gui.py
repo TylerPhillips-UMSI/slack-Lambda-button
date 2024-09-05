@@ -27,9 +27,25 @@ PRESS_START = None # for long button presses
 
 pending_message_ids = [] # pending messages from this device specifically
 message_to_channel = {} # maps message ids to channel ids
+frames = []
 
 INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
 RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
+
+def preload_frames(root: tk.Tk):
+    """
+    Preloads and caches images.
+    
+    Args:
+        root (tk.Tk): The root window.
+    """
+    frame_count = 136
+
+    with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
+        for i in range(frame_count):
+            gif.seek(i)
+            frames.append(load_and_scale_image(root, gif.copy()))
+
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -86,7 +102,7 @@ def load_and_scale_image(root: tk.Tk, img: Image.Image) -> ImageTk.PhotoImage:
 
     if actual["width"] == base["width"] and actual["height"] == base["height"]:
         return ImageTk.PhotoImage(img)
-    
+
     scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
     new_size = (int(scale * img.width), int(scale * img.height))
 
@@ -117,15 +133,9 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
         # dude_img_label.image = dude_img # keep a reference so it's still in memory
         # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
 
-        frame_count = 136
-        frames = []
-
-        with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
-            for i in range(frame_count):
-                gif.seek(i)
-                frames.append(load_and_scale_image(root, gif.copy()))
-
         dude_img_label = ttk.Label(root, image=frames[0], background=BLUE)
+        
+        frame_count = len(frames)
 
         def update(index: int) -> None:
             frame = frames[index]
@@ -419,6 +429,8 @@ def display_gui() -> None:
 
     # if is_raspberry_pi:
     #     setup_gpio(root, display_frame, style, do_post)
+
+    preload_frames(root)
 
     display_main(display_frame, style)
 
