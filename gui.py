@@ -84,6 +84,9 @@ def load_and_scale_image(root: tk.Tk, img: Image.Image) -> ImageTk.PhotoImage:
     base = {"width": 1920, "height": 1080}
     actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
 
+    if actual["width"] == base["width"] and actual["height"] == base["height"]:
+        return ImageTk.PhotoImage(img)
+    
     scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
     new_size = (int(scale * img.width), int(scale * img.height))
 
@@ -144,7 +147,7 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
         help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
         help_label.place(relx=0.5, rely=0.57, anchor="center")
 
-    root.after(20, load_contents) # add delay to make gif not affect countdown?
+    load_contents()
 
 def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                        do_post: bool) -> None:
