@@ -129,12 +129,6 @@ def display_main(frame: tk.Frame, style: ttk.Style) -> None:
         style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
         style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
 
-        # KEEP THIS CODE IN CASE WE NEED TO GO BACK TO A STATIC IMAGE!
-        # dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
-        # dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
-        # dude_img_label.image = dude_img # keep a reference so it's still in memory
-        # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
-
         dude_img_label = ttk.Label(frame, image=frames[0], background=BLUE)
 
         frame_count = len(frames)
@@ -211,12 +205,16 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
 
     # countdown
-    timeout = 25
+    timeout = 15
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
     oswald_36 = tkFont.Font(family="Oswald", size=scale_font(root, 36), weight="bold")
     monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
+
+    # make a BG frame so nothing else shows through
+    background_frame = tk.Frame(frame, bg=BLUE)
+    background_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
     # create a text widget to display the countdown and timeout
     text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0,
@@ -327,8 +325,6 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
 
     for widget in frame.winfo_children():
         widget.destroy()
-
-    frame = tk.Frame(root, bg=BLUE)
 
     # restore left click bindings
     bind_presses(root, frame, style, do_post)
