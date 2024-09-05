@@ -113,18 +113,18 @@ def load_and_scale_image(root: tk.Tk, img: Image.Image) -> ImageTk.PhotoImage:
 
     return photo_image
 
-def display_main(root: tk.Frame, style: ttk.Style) -> None:
+def display_main(frame: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
 
     Args:
-        root (tk.Tk): the root window
+        frame (tk.Frame): the frame we're working with
         style (ttk.Style): the style manager for our window
     """
 
     def load_contents():
-        oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
-        oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
+        oswald_96 = tkFont.Font(family="Oswald", size=scale_font(frame, 96), weight="bold")
+        oswald_80 = tkFont.Font(family="Oswald", size=scale_font(frame, 80), weight="bold")
 
         style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
         style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
@@ -135,28 +135,28 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
         # dude_img_label.image = dude_img # keep a reference so it's still in memory
         # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
 
-        dude_img_label = ttk.Label(root, image=frames[0], background=BLUE)
+        dude_img_label = ttk.Label(frame, image=frames[0], background=BLUE)
 
         frame_count = len(frames)
 
         def update(index: int) -> None:
-            frame = frames[index]
+            current_frame = frames[index]
             index += 1
 
             if index != frame_count:
-                dude_img_label.configure(image=frame)
-                root.after(20, update, index)
+                dude_img_label.configure(image=current_frame)
+                frame.after(20, update, index)
 
         dude_img_label.place(relx=0.5, rely=0.36, anchor="center")
 
         update(0)
 
-        instruction_label = ttk.Label(root, text="Tap the screen!",
+        instruction_label = ttk.Label(frame, text="Tap the screen!",
                                     style="Instructions.TLabel")
         instruction_label.place(relx=0.5, rely=0.71, anchor="center")
 
         # help label has to be rendered after img to be seen (layering)
-        help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
+        help_label = ttk.Label(frame, text="Need help?", style="NeedHelp.TLabel")
         help_label.place(relx=0.5, rely=0.57, anchor="center")
 
     load_contents()
@@ -211,7 +211,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
 
     # countdown
-    countdown_length_sec = 25
+    timeout = 25
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
@@ -231,16 +231,14 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     text_widget.tag_configure("right", justify="right")
     text_widget.tag_add("right", "1.0", "end")
 
-    seconds_left = countdown_length_sec
-
     def update_text_widget():
         text_widget.config(state=tk.NORMAL) # enable editing
 
         text_widget.delete("1.0", tk.END)
 
-        text_widget.insert(tk.END, f"{' ' if seconds_left < 100 else ''}", "countdown")
+        text_widget.insert(tk.END, f"{' ' if timeout < 100 else ''}", "countdown")
         text_widget.insert(tk.END, "Request times out in ", "timeout")
-        text_widget.insert(tk.END, f"{seconds_left}", "countdown")
+        text_widget.insert(tk.END, f"{timeout}", "countdown")
         text_widget.insert(tk.END, " seconds", "timeout")
 
         text_widget.config(state=tk.DISABLED) # disable editing
@@ -255,11 +253,11 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     # do a timeout countdown
     def countdown():
-        nonlocal seconds_left # allows us to access seconds_left in here
+        nonlocal timeout # allows us to access timeout in here
         nonlocal root, frame, style, do_post
 
         # decrement seconds left and set the label's text
-        seconds_left -= 1
+        timeout -= 1
         update_text_widget()
 
         # if we have a message from SQS, make sure it's ours and then use it
@@ -286,8 +284,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                 # either way, return
                 return
 
-        if seconds_left <= 0:
-
+        if timeout <= 0:
             revert_to_main(root, frame, style, do_post)
 
             if len(pending_message_ids) > 0:
@@ -297,7 +294,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                 aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
 
         # schedule countdown until seconds_left is 1
-        if seconds_left > 0:
+        if timeout > 0:
             root.after(1000, countdown)
         else:
             aws.STOP_THREAD = True
@@ -317,22 +314,6 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     root.update_idletasks() # gets stuff to load all at once
 
-    three_min = countdown_length_sec * 1000 # seconds * ms
-
-    # def after_3_min():
-    #     nonlocal root, frame, style, do_post
-
-    #     revert_to_main(root, frame, style, do_post)
-
-    #     if len(pending_message_ids) > 0:
-    #         message_id = pending_message_ids[0]
-    #         channel_id = message_to_channel[message_id]
-
-    #         aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
-
-    # # to be used for cancelling when a checkmark is received
-    # after_id = root.after(three_min, after_3_min)
-
 def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
     Reverts from another frame to the main display
@@ -345,7 +326,9 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
     """
 
     for widget in frame.winfo_children():
-        widget.place_forget()
+        widget.destroy()
+
+    frame = tk.Frame(root, bg=BLUE)
 
     # restore left click bindings
     bind_presses(root, frame, style, do_post)
