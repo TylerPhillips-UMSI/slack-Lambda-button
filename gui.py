@@ -248,7 +248,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     # Initial update
     update_text_widget()
 
-    polling_thread = threading.Thread(target=aws.poll_sqs, args=[aws.SQS_CLIENT, slack.BUTTON_CONFIG["device_id"]], daemon=True)
+    polling_thread = threading.Thread(target=aws.poll_sqs,
+                                      args=[aws.SQS_CLIENT, slack.BUTTON_CONFIG["device_id"]],
+                                      daemon=True)
     polling_thread.start()
 
     # do a timeout countdown
