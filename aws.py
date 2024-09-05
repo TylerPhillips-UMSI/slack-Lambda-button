@@ -7,12 +7,13 @@ Author:
 Nikki Hess (nkhess@umich.edu)
 """
 
-import threading # for sqs polling
+import time
 
 import json
 import boto3
 
 LATEST_MESSAGE = None # latest SQS message
+STOP_THREAD = False
 
 def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, 
                   device_id: str, dev: bool):
@@ -87,11 +88,15 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
         sqs_client (boto3.client): the SQS client we're using
         device_id (str): the id of the device we're on
     """
-    global LATEST_MESSAGE
+    global LATEST_MESSAGE, STOP_THREAD
 
     queue_url = "https://sqs.us-east-2.amazonaws.com/225753854445/slackLambda-dev.fifo"
 
     while True:
+        if STOP_THREAD:
+            STOP_THREAD = False
+            break
+
         response = sqs_client.receive_message(
             QueueUrl=queue_url,
             MaxNumberOfMessages=1,
@@ -122,6 +127,8 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
                 ReceiptHandle=message["ReceiptHandle"]
             )
 
+            time.sleep(1)
+
 def setup_aws() -> boto3.client:
     """
     Sets up the AWS client
@@ -129,7 +136,7 @@ def setup_aws() -> boto3.client:
     Returns:
         the Lambda client, the SQS client
     """
-    global AWS_CONFIG
+    global AWS_CONFIG, SLACK_CONFIG, SQS_CLIENT
 
     config_defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
     try:
@@ -179,17 +186,14 @@ def setup_aws() -> boto3.client:
     )
 
     # set up sqs client
-    sqs_client = boto3.client(
+    SQS_CLIENT = boto3.client(
         "sqs",
         aws_access_key_id=access_key,
         aws_secret_access_key=secret,
         region_name=region
     )
-   
-    polling_thread = threading.Thread(target=poll_sqs, args=(sqs_client, device_id), daemon=True)
-    polling_thread.start()
 
-    return client, sqs_client
+    return client, SQS_CLIENT
 
 if __name__ == "__main__":
     lambda_client, sqs_client = setup_aws()

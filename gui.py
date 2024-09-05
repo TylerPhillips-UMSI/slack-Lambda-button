@@ -14,6 +14,8 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
+import threading # for sqs polling
+
 from PIL import Image, ImageTk
 
 import simpleaudio as sa
@@ -134,7 +136,7 @@ def display_main(root: tk.Frame, style: ttk.Style) -> None:
         # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
 
         dude_img_label = ttk.Label(root, image=frames[0], background=BLUE)
-        
+
         frame_count = len(frames)
 
         def update(index: int) -> None:
@@ -246,6 +248,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     # Initial update
     update_text_widget()
 
+    polling_thread = threading.Thread(target=aws.poll_sqs, args=[aws.SQS_CLIENT, slack.BUTTON_CONFIG["device_id"]], daemon=True)
+    polling_thread.start()
+
     # do a timeout countdown
     def countdown():
         nonlocal seconds_left # allows us to access seconds_left in here
@@ -293,6 +298,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         if seconds_left > 0:
             root.after(1000, countdown)
         else:
+            aws.STOP_THREAD = True
             return
 
     root.after(1000, countdown)
