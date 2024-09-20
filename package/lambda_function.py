@@ -185,7 +185,7 @@ def handle_message_replied(event: dict, reply_text: str) -> bool:
     thread_ts = event.get("thread_ts")
 
     # gather information about the author
-    author_id = event.get("parent_user_id")
+    author_id = event.get("user")
     author_name = get_user_display_name(author_id)
 
     # going to be used in the GUI to determine if we should display the message
