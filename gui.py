@@ -266,7 +266,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
             if ts in pending_message_ids:
                 # if no resolving reaction/emoji, display message
-                if not "white_check_mark" in reply_text and not "+1" in reply_text:
+                if not ":white_check_mark:" in reply_text and not ":+1:" in reply_text:
                     received_label.configure(text=f"From {reply_author}")
                     waiting_label.configure(text=reply_text)
 

@@ -114,7 +114,7 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
             # process the message
             message_body = message["Body"]
             message_body = json.loads(message_body) # load into JSON
-            message_body = message_body["Message"]
+            message_body = message_body["Message"] # get message
             message_body = json.loads(message_body) # load into JSON again
 
             print("SQS message received:", message_body)

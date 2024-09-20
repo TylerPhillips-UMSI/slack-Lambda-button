@@ -96,16 +96,17 @@ def lambda_handler(event: dict, context: object):
         event_type = event_body.get("type")
 
     print("type:", event_type)
-
     posted_message_id = None
     posted_message_channel = None
 
     # according to THIS page: https://api.slack.com/events/message/message_replied
-    # there is a bug where subtype is currently missing when the event is dispatched via the events API
-    # until fixed, we need to verify that it has a thread_ts, which is unique to message replies here
-    if event_type == "message" and event.get("message").get("thread_ts") is not None:
-        message = event_body.get("message", "")
-        handle_message_replied(event_body)
+    # there is a bug where subtype is currently missing when the event is
+    # dispatched via the events API. until fixed, we need to verify that it has a thread_ts,
+    # which is unique to message replies here
+    if event_type == "message" and event_body.get("thread_ts") is not None:
+        # this is awful :(
+        message = event_body.get("text")
+        handle_message_replied(event_body, message)
     elif event_type == "reaction_added":
         message = event_body.get("reaction", "")
         handle_reaction_added(event_body)
@@ -167,35 +168,34 @@ def get_user_display_name(user_id: str):
 
     return display_name
 
-def handle_message_replied(event: dict) -> bool:
+def handle_message_replied(event: dict, reply_text: str) -> bool:
     """
     Handles messages for lambda_handler
 
     Args:
         event (dict): the event data from Slack
+        reply_text (str): the text content of the message reply
 
     Returns:
         resolved (bool): whether the message was marked as resolved, for GUI
     """
     print("Handling message...")
 
-    message = event.get("message")
     channel_id = event.get("channel")
-    thread_ts = message.get("thread_ts")
-    channel_id = message_to_channel.get(thread_ts)
-
-    # gather information about the reply message
-    replies = message.get("replies", [])
-    reply_count = message.get("reply_count")
-    reply_ts = replies[reply_count - 1].get("ts")
-    reply_text = get_message_content(channel_id, reply_ts)
+    thread_ts = event.get("thread_ts")
 
     # gather information about the author
-    author_id = message.get("user")
+    author_id = event.get("parent_user_id")
     author_name = get_user_display_name(author_id)
 
     # going to be used in the GUI to determine if we should display the message
     resolved = False
+
+    sns_message = {
+        "ts": thread_ts,
+        "reply_text": reply_text,
+        "reply_author": author_name
+    }
 
     if thread_ts in pending_messages:
         if ":white_check_mark:" in reply_text or ":+1:" in reply_text:
@@ -203,12 +203,6 @@ def handle_message_replied(event: dict) -> bool:
             pending_messages.remove(thread_ts)
 
             message_append(channel_id, thread_ts, "*(resolved)*")
-
-            sns_message = {
-                "ts": thread_ts,
-                "reply_text": reply_text,
-                "reply_author": author_name
-            }
 
             SNS_CLIENT.publish(
                 TopicArn=SNS_ARN,
@@ -219,7 +213,12 @@ def handle_message_replied(event: dict) -> bool:
 
             resolved = True
         else:
-            print("Response did not contain :white_check_mark: or :+1:")
+            SNS_CLIENT.publish(
+                TopicArn=SNS_ARN,
+                Message=json.dumps(sns_message),
+                MessageGroupId=message_to_device_id[thread_ts], # original device
+                Subject="Message Reply Notification"
+            )
     else:
         print("Timestamp was not in pending messages")
 
