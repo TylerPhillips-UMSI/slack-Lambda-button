@@ -21,24 +21,30 @@ import boto3
 import sheets
 import aws
 
-aws_client = aws.setup_aws()
+lambda_client, sqs_client = aws.setup_aws()
 is_raspberry_pi = not sys.platform.startswith("win32")
+
+config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
 
 # Read the configuration files
 try:
-    with open("slack.json", "r", encoding="utf8") as file:
-        CONFIG = json.load(file)
-except json.JSONDecodeError as e:
-    print(e)
-except FileNotFoundError as e:
-    with open("slack.json", "x", encoding="utf8") as file:
-        print("slack.json not found, creating it for you...")
+    with open("config/slack.json", "r", encoding="utf8") as file:
+        slack_config = json.load(file)
 
-        defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
-        json.dump(defaults, file)
+        # if we don't have all required keys, populate the defaults
+        if not all(slack_config.get(key) for key in config_defaults.keys()):
+            with open("config/slack.json", "w", encoding="utf8") as write_file:
+                json.dump(config_defaults, write_file)
+except (FileNotFoundError, json.JSONDecodeError):
+    with open("config/slack.json", "w+", encoding="utf8") as file:
+        print("config/slack.json not found or wrong, creating + populating defaults...")
 
-BUTTON_CONFIG = CONFIG["button_config"]
-BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
+        json.dump(config_defaults, file)
+        print("Please fill out config/slack.json before running again.")
+    exit()
+
+BUTTON_CONFIG = slack_config["button_config"]
+BOT_OAUTH_TOKEN = slack_config["bot_oauth_token"]
 
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
@@ -110,7 +116,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     return formatted_time
 
-def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_length: float = 0) -> None:
+def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_length: float = 0) -> str | None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
@@ -118,6 +124,9 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
         aws_client (boto3.client): the AWS client we're using
         do_post (bool): whether to post to the Slack or just log in console, for debug
         press_length (float): how long was the button pressed?
+
+    Returns:
+        the posted message id, if there is one OR None
     """
 
     press_type = "LONG" if press_length > 2 else "SINGLE"
@@ -165,14 +174,18 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
 
-    # sort of mocking, I guess? I circumvent API calls, but it's not REALLY mocking is it?
+    # if we post to Slack, we need to go through AWS and return a message id
     if do_post:
-        aws.post_to_slack(aws_client, final_message, device_channel_id, True)
+        message_id, channel_id = aws.post_to_slack(aws_client, final_message, device_channel_id, device_id, True)
 
         LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
-    else:
-        print(f"\nMESSAGE\n--------\n{final_message}")
+
+        return message_id, channel_id
+    # else not needed here cuz return
+    print(f"\nMESSAGE\n--------\n{final_message}")
+
+    return None, None
 
 if __name__ == "__main__":
     # testing
-    handle_interaction(aws_client, do_post = True, press_length = 1)
+    handle_interaction(lambda_client, do_post = True, press_length = 1)

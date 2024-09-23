@@ -15,6 +15,7 @@ from typing import List, TextIO#, Tuple
 import traceback
 
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -22,8 +23,8 @@ from googleapiclient.errors import HttpError
 
 # The only scope we need is drive.file so we can create files and interact with those files
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
-cache = {}
-cache_cooldown = 1500
+CACHE = {}
+CACHE_COOLDOWN = 1500
 
 def open_config() -> TextIO:
 	"""
@@ -97,10 +98,18 @@ def do_oauth_flow() -> Credentials:
 		except (ValueError, json.JSONDecodeError):
 			pass # just don't get creds
 	
+	
 	# If there are no (valid) credentials available, let the user log in.
 	if not creds or not creds.valid:
 		if creds and creds.expired and creds.refresh_token:
-			creds.refresh(Request())
+			try:
+				creds.refresh(Request())
+			except RefreshError: # google RefreshError, need new token
+				os.remove("config/token.json") # clear expired token
+				flow = InstalledAppFlow.from_client_secrets_file(
+					"config/credentials.json", SCOPES
+				)
+				creds = flow.run_local_server(port=0)
 		else:
 			flow = InstalledAppFlow.from_client_secrets_file(
 				"config/credentials.json", SCOPES
@@ -166,23 +175,23 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 		print(f"Invalid spreadsheet id {spreadsheet_id}. Make sure you typed it correctly!")
 		exit(1)
 
-	cached_spreadsheet = cache.get("spreadsheets", {}).get(spreadsheet_id, None)
+	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
 	cached_contents = cached_spreadsheet.get("contents") if cached_spreadsheet else None
 	contents_expiry = cached_spreadsheet.get("contents_expiry") if cached_spreadsheet else None
 
 	if not response["trashed"]:
 		if cached_contents is not None and contents_expiry > time.time():
 			print(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
-			spreadsheet = cache["spreadsheets"][spreadsheet_id]["contents"]
+			spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
 		else:
 			spreadsheet = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
 			print(f"Got existing spreadsheet with ID: {spreadsheet_id}")
-			print(f"Caching spreadsheet...")
+			print("Caching spreadsheet...")
 
             # we need to make sure the structure exists first by setting a default
-			cached_spreadsheet = cache.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
+			cached_spreadsheet = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
 			cached_spreadsheet["contents"] = spreadsheet
-			cached_spreadsheet["contents_expiry"] = time.time() + cache_cooldown
+			cached_spreadsheet["contents_expiry"] = time.time() + CACHE_COOLDOWN
 	else:
 		print("Spreadsheet was trashed. We'll have to create a new one.")
 
@@ -198,7 +207,7 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 		spreadsheet_id (str): the spreadsheet to check for emptiness
 	"""
 
-	cached_spreadsheet = cache.get("spreadsheets", {}).get(spreadsheet_id, None)
+	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
 	cached_emptiness = cached_spreadsheet.get("emptiness", {}).get("value") if cached_spreadsheet else None
 	emptiness_expiry = cached_spreadsheet.get("emptiness", {}).get("expiry") if cached_spreadsheet else None
 
@@ -218,9 +227,9 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 			values = result.get("values", [])
 			empty = (len(values) == 0)
 
-			emptiness_dict = cache.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("emptiness", {})
+			emptiness_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("emptiness", {})
 			emptiness_dict["value"] = empty
-			emptiness_dict["expiry"] = time.time() + cache_cooldown
+			emptiness_dict["expiry"] = time.time() + CACHE_COOLDOWN
 			print(f"Spreadsheet {spreadsheet_id} {'is' if empty else 'is not'} empty")
 
 			return empty
@@ -239,7 +248,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 	first_empty_row (int): the first empty row in the spreadsheet
 	"""
 
-	cached_spreadsheet = cache.get("spreadsheets", {}).get(spreadsheet_id, None)
+	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
 	cached_index = cached_spreadsheet.get("first_empty_row", {}).get("index") if cached_spreadsheet else None
 	index_expiry = cached_spreadsheet.get("first_empty_row", {}).get("expiry") if cached_spreadsheet else None
 
@@ -263,9 +272,9 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 		values = result.get("values", [])
 		last_row = len(values) + 1
 
-		index_dict = cache.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("first_empty_row", {})
+		index_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("first_empty_row", {})
 		index_dict["index"] = last_row
-		index_dict["expiry"] = time.time() + cache_cooldown
+		index_dict["expiry"] = time.time() + CACHE_COOLDOWN
 
 		print(f"First empty row for spreadsheet {spreadsheet_id} is {last_row}")
 
@@ -315,7 +324,7 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 			   first_letter: str = "A", last_letter: str = "A") -> List[str]:
 	"""
 	Gets a row in a spreadsheet by index (row_idx)
-	
+
 	Params:
 		sheets_service: the Google Sheets service we're using
 		spreadsheet_id (str): the id of the spreadsheet we're working with
@@ -328,14 +337,14 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 	if first_row < 1 or last_row < 1 or first_letter < "A" or last_letter < "A":
 		raise ValueError("Google Sheets starts at A1!")
 
-	range = f"{first_letter}{first_row}:{last_letter}{last_row}"
+	sheets_range = f"{first_letter}{first_row}:{last_letter}{last_row}"
 
-	cached_spreadsheet = cache.get("spreadsheets", {}).get(spreadsheet_id, None)
-	cached_region = cached_spreadsheet.get("regions", {}).get(range) if cached_spreadsheet else None
+	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
+	cached_region = cached_spreadsheet.get("regions", {}).get(sheets_range) if cached_spreadsheet else None
 	region_expiry = cached_region.get("expiry") if cached_region else None
 
 	if cached_region is not None and region_expiry > time.time():
-		print(f"Cached region {range} found in spreadsheet {spreadsheet_id}.")
+		print(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id}.")
 		return cached_region["contents"]
 	else:
 		result = (
@@ -343,7 +352,7 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 			.values()
 			.get(
 				spreadsheetId=spreadsheet_id,
-				range=range
+				range=sheets_range
 			)
 			.execute()
 		)
@@ -352,13 +361,13 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 			contents = result["values"]
 		except KeyError: # if the region is empty, there's no values
 			contents = []
-		
-		print(f"Contents for region {range} retrieved. Caching...")
 
-		region_dict = cache.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("regions", {})
-		region_dict = region_dict.setdefault(range, {})
+		print(f"Contents for region {sheets_range} retrieved. Caching...")
+
+		region_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("regions", {})
+		region_dict = region_dict.setdefault(sheets_range, {})
 		region_dict["contents"] = contents
-		region_dict["expiry"] = time.time() + cache_cooldown
+		region_dict["expiry"] = time.time() + CACHE_COOLDOWN
 
 		return contents
 
@@ -413,7 +422,6 @@ def setup_sheets():
 
 	return config_file, sheets_service, drive_service, spreadsheet, spreadsheet_id
 
-
 if __name__ == "__main__":
 	_, sheets_service, drive_service, _, spreadsheet_id = setup_sheets()
 	get_spreadsheet(sheets_service, drive_service, spreadsheet_id)
@@ -427,5 +435,6 @@ if __name__ == "__main__":
 	first_empty = find_first_empty_row(sheets_service, spreadsheet_id)
 
 	print("")
-	region = get_region(sheets_service, spreadsheet_id)
-	region = get_region(sheets_service, spreadsheet_id)
+	sheets_region = get_region(sheets_service, spreadsheet_id)
+	sheets_region = get_region(sheets_service, spreadsheet_id)
+	pass

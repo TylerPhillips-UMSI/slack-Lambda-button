@@ -14,62 +14,40 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
+import threading # for sqs polling
+
 from PIL import Image, ImageTk
 
+import simpleaudio as sa
+
 import slack
+import aws
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
 PRESS_START = None # for long button presses
 
-# only import GPIO and do GPIO operations on Pi
-# is_raspberry_pi = not sys.platform.startswith("win32")
-# if is_raspberry_pi:
-#     import RPi.GPIO as GPIO # for Argon interactions
+pending_message_ids = [] # pending messages from this device specifically
+message_to_channel = {} # maps message ids to channel ids
+frames = []
 
-# def setup_gpio(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
-#     """
-#     Sets up GPIO event listeners for the Argon case's 4 buttons
+INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
+RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
 
-#     Args:
-#         root (tk.Tk): the root window
-#         frame (tk.Frame): the frame that we're putting widgets in
-#         style (ttk.Style): the style class we're working with
-#         do_post (bool): whether to post to the Slack channel
-#     """
+def preload_frames(root: tk.Tk):
+    """
+    Preloads and caches images.
+    
+    Args:
+        root (tk.Tk): The root window.
+    """
+    frame_count = 136
 
-#     button_1 = 16
-#     button_2 = 20
-#     button_3 = 21
-#     button_4 = 22
+    with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
+        for i in range(frame_count):
+            gif.seek(i)
+            frames.append(load_and_scale_image(root, gif.copy()))
 
-#     # initial GPIO setup
-#     GPIO.setmode(GPIO.BCM)
-
-#     # add pull-up resistory to make readings more stable
-#     GPIO.setup(button_1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#     GPIO.setup(button_2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#     GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#     GPIO.setup(button_4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-#     def handle_gpio_event(channel):
-#         """
-#         Handles GPIO events for falling and rising edges.
-
-#         Args:
-#             channel (int): the GPIO channel that triggered the event
-#         """
-#         global PRESS_START
-#         if GPIO.input(channel) == GPIO.LOW:
-#             # Falling edge
-#             PRESS_START = time.time()
-#         else:
-#             # Rising edge
-#             handle_interaction(root, frame, style, do_post)
-
-#     # Add event detection for both edges
-#     for button in [button_1, button_2, button_3, button_4]:
-#         GPIO.add_event_detect(button, GPIO.BOTH, callback=handle_gpio_event, bouncetime=200)
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -124,6 +102,9 @@ def load_and_scale_image(root: tk.Tk, img: Image.Image) -> ImageTk.PhotoImage:
     base = {"width": 1920, "height": 1080}
     actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
 
+    if actual["width"] == base["width"] and actual["height"] == base["height"]:
+        return ImageTk.PhotoImage(img)
+
     scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
     new_size = (int(scale * img.width), int(scale * img.height))
 
@@ -132,59 +113,47 @@ def load_and_scale_image(root: tk.Tk, img: Image.Image) -> ImageTk.PhotoImage:
 
     return photo_image
 
-def display_main(root: tk.Frame, style: ttk.Style) -> None:
+def display_main(frame: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
 
     Args:
-        root (tk.Tk): the root window
+        frame (tk.Frame): the frame we're working with
         style (ttk.Style): the style manager for our window
     """
 
     def load_contents():
-        oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
-        oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
+        oswald_96 = tkFont.Font(family="Oswald", size=scale_font(frame, 96), weight="bold")
+        oswald_80 = tkFont.Font(family="Oswald", size=scale_font(frame, 80), weight="bold")
 
         style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
         style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
 
-        # KEEP THIS CODE IN CASE WE NEED TO GO BACK TO A STATIC IMAGE!
-        # dude_img = load_and_scale_image(root, "images/duderstadt-logo.png")
-        # dude_img_label = ttk.Label(root, image=dude_img, background=BLUE)
-        # dude_img_label.image = dude_img # keep a reference so it's still in memory
-        # dude_img_label.place(relx=0.5, rely=0.37, anchor="center")
+        dude_img_label = ttk.Label(frame, image=frames[0], background=BLUE)
 
-        frame_count = 136
-        frames = []
-
-        with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
-            for i in range(frame_count):
-                gif.seek(i)
-                frames.append(load_and_scale_image(root, gif.copy()))
-
-        dude_img_label = ttk.Label(root, image=frames[0], background=BLUE)
+        frame_count = len(frames)
 
         def update(index: int) -> None:
-            frame = frames[index]
+            current_frame = frames[index]
             index += 1
 
             if index != frame_count:
-                dude_img_label.configure(image=frame)
-                root.after(20, update, index)
+                dude_img_label.configure(image=current_frame)
+                frame.after(20, update, index)
 
         dude_img_label.place(relx=0.5, rely=0.36, anchor="center")
 
         update(0)
 
-        instruction_label = ttk.Label(root, text="Tap the screen!",
+        instruction_label = ttk.Label(frame, text="Tap the screen!",
                                     style="Instructions.TLabel")
         instruction_label.place(relx=0.5, rely=0.71, anchor="center")
 
         # help label has to be rendered after img to be seen (layering)
-        help_label = ttk.Label(root, text="Need help?", style="NeedHelp.TLabel")
+        help_label = ttk.Label(frame, text="Need help?", style="NeedHelp.TLabel")
         help_label.place(relx=0.5, rely=0.57, anchor="center")
 
-    root.after(20, load_contents) # add delay to make gif not affect countdown?
+    load_contents()
 
 def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                        do_post: bool) -> None:
@@ -210,11 +179,19 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
 
     current_time = time.time()
 
+    def post():
+        message_id, channel_id = slack.handle_interaction(slack.lambda_client, do_post,
+               (current_time - PRESS_START) if PRESS_START is not None else 0)
+
+        pending_message_ids.append(message_id)
+        message_to_channel[message_id] = channel_id
+
+    play_obj = INTERACT_SOUND.play()
+    play_obj.wait_done()
+
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
-    root.after(20, lambda:
-               slack.handle_interaction(slack.aws_client, do_post,
-               (current_time - PRESS_START) if PRESS_START is not None else 0))
+    root.after(20, post)
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -228,12 +205,16 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
 
     # countdown
-    countdown_length_sec = 180
+    timeout = 15
 
     oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
     oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
     oswald_36 = tkFont.Font(family="Oswald", size=scale_font(root, 36), weight="bold")
     monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
+
+    # make a BG frame so nothing else shows through
+    background_frame = tk.Frame(frame, bg=BLUE)
+    background_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
     # create a text widget to display the countdown and timeout
     text_widget = tk.Text(frame, background=BLUE, foreground=MAIZE, bd=0,
@@ -248,16 +229,14 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     text_widget.tag_configure("right", justify="right")
     text_widget.tag_add("right", "1.0", "end")
 
-    seconds_left = countdown_length_sec
-
     def update_text_widget():
         text_widget.config(state=tk.NORMAL) # enable editing
 
         text_widget.delete("1.0", tk.END)
 
-        text_widget.insert(tk.END, f"{' ' if seconds_left < 100 else ''}", "countdown")
+        text_widget.insert(tk.END, f"{' ' if timeout < 100 else ''}", "countdown")
         text_widget.insert(tk.END, "Request times out in ", "timeout")
-        text_widget.insert(tk.END, f"{seconds_left}", "countdown")
+        text_widget.insert(tk.END, f"{timeout}", "countdown")
         text_widget.insert(tk.END, " seconds", "timeout")
 
         text_widget.config(state=tk.DISABLED) # disable editing
@@ -265,20 +244,59 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     # Initial update
     update_text_widget()
 
+    polling_thread = threading.Thread(target=aws.poll_sqs,
+                                      args=[aws.SQS_CLIENT, slack.BUTTON_CONFIG["device_id"]],
+                                      daemon=True)
+    polling_thread.start()
+
     # do a timeout countdown
     def countdown():
-        nonlocal seconds_left # allows us to access seconds_left in here
+        nonlocal timeout # allows us to access timeout in here
+        nonlocal root, frame, style, do_post
 
         # decrement seconds left and set the label's text
-        seconds_left -= 1
+        timeout -= 1
         update_text_widget()
 
+        # if we have a message from SQS, make sure it's ours and then use it
+        if aws.LATEST_MESSAGE:
+            ts = aws.LATEST_MESSAGE["ts"]
+            reply_author = aws.LATEST_MESSAGE["reply_author"]
+            reply_text = aws.LATEST_MESSAGE["reply_text"]
+
+            if ts in pending_message_ids:
+                # if no resolving reaction/emoji, display message
+                if not ":white_check_mark:" in reply_text and not ":+1:" in reply_text:
+                    received_label.configure(text=f"From {reply_author}")
+                    waiting_label.configure(text=reply_text)
+
+                    aws.LATEST_MESSAGE = None
+
+                    play_obj = RECEIVE_SOUND.play()
+                    play_obj.wait_done()
+                # else revert to main and cancel this countdown
+                else:
+                    revert_to_main(root, frame, style, do_post)
+                    aws.LATEST_MESSAGE = None
+
+                # either way, return
+                return
+
+        if timeout <= 0:
+            revert_to_main(root, frame, style, do_post)
+
+            if len(pending_message_ids) > 0:
+                message_id = pending_message_ids[0]
+                channel_id = message_to_channel[message_id]
+
+                aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
+
         # schedule countdown until seconds_left is 1
-        if seconds_left > 0:
+        if timeout > 0:
             root.after(1000, countdown)
         else:
-            # text_widget.place_forget()
-            pass
+            aws.STOP_THREAD = True
+            return
 
     root.after(1000, countdown)
 
@@ -294,9 +312,6 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     root.update_idletasks() # gets stuff to load all at once
 
-    three_min = countdown_length_sec * 1000 # seconds * ms
-    root.after(three_min, lambda: revert_to_main(root, frame, style, do_post))
-
 def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
     Reverts from another frame to the main display
@@ -309,7 +324,7 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
     """
 
     for widget in frame.winfo_children():
-        widget.place_forget()
+        widget.destroy()
 
     # restore left click bindings
     bind_presses(root, frame, style, do_post)
@@ -331,19 +346,19 @@ def hex_to_rgb(hex_str: str) -> tuple:
     return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
-def interpolate(start_color: tuple, end_color: tuple, t: int) -> tuple:
+def interpolate(start_color: tuple, end_color: tuple, time_: int) -> tuple:
     """
     Interpolates between two colors based on time
 
     Args:
         start_color (tuple): the color to start with
         end_color (tuple): the color to end with
-        t (int): the amount of time that has passed
+        time_ (int): the amount of time that has passed
 
     Returns:
         An interpolated tuple somewhere between our two colors
     """
-    return tuple(int(a + (b - a) * t) for a, b in zip(start_color, end_color))
+    return tuple(int(a + (b - a) * time_) for a, b in zip(start_color, end_color))
 
 # https://stackoverflow.com/questions/57337718/smooth-transition-in-tkinter
 def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tuple,
@@ -363,10 +378,10 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
     # set a framerate for the fade
     fps = 60
 
-    t = (1.0 / fps) * current_step
+    time_ = (1.0 / fps) * current_step
     current_step += 1
 
-    new_color = interpolate(start_color, end_color, t)
+    new_color = interpolate(start_color, end_color, time_)
     label.configure(foreground=f"#{new_color[0]:02x}{new_color[1]:02x}{new_color[2]:02x}")
 
     if current_step <= fps:
@@ -379,7 +394,7 @@ def display_gui() -> None:
     Displays the TKinter GUI
     """
     escape_display_period_ms = 5000
-    do_post = False
+    do_post = True
 
     # make a window
     root = tk.Tk()
@@ -401,6 +416,8 @@ def display_gui() -> None:
 
     # if is_raspberry_pi:
     #     setup_gpio(root, display_frame, style, do_post)
+
+    preload_frames(root)
 
     display_main(display_frame, style)
 
