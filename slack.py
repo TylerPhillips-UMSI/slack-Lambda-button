@@ -97,7 +97,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     formatted_time = None
     try:
-        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit.json",
+        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit",
                                 timeout=5)
         response_data = response.json()
         iso_datetime = response_data["datetime"]
@@ -109,7 +109,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
             date_command = f"sudo date -s {iso_datetime}"
             date_command = date_command.split()
             check_call(date_command, stdout=DEVNULL, stderr=STDOUT)
-    except requests.exceptions.Timeout:
+    except (requests.exceptions.Timeout, json.decoder.JSONDecodeError):
         # Fall back on system time, though potentially iffy
         now = datetime.now()
         formatted_time = now.strftime("%B %d, %Y %I:%M:%S %p")
