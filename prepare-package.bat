@@ -1,5 +1,8 @@
 @echo off
-echo Starting setup for slack-Lambda-button for AWS deployment...
+echo Preparing package for slack-Lambda-button for AWS deployment...
+
+cd /d "%~dp0"
+echo Current working directory: %cd%
 
 :: Install Python Requests library
 pip install --target ./package --upgrade requests
@@ -9,6 +12,9 @@ pip install --target ./package --upgrade google-api-python-client google-auth-ht
 
 :: Install boto3
 pip install --target ./package --upgrade boto3
+
+:: Copy config over to package, if it exists
+copy config ./package/config
 
 echo All done!
 pause

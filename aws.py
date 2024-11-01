@@ -138,7 +138,7 @@ def setup_aws() -> boto3.client:
     """
     global AWS_CONFIG, SLACK_CONFIG, SQS_CLIENT
 
-    config_defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
+    config_defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2", "sns_arn": ""}
     try:
         with open("config/aws.json", "r", encoding="utf8") as file:
             AWS_CONFIG = json.load(file)
