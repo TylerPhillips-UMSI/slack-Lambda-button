@@ -26,6 +26,15 @@ SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 CACHE = {}
 CACHE_COOLDOWN = 1500
 
+config_defaults = {}
+try:
+	with open("config/credentials.json", "r", encoding="utf8") as file:
+		json.load(file)
+except (FileNotFoundError, json.JSONDecodeError):
+	with open("config/credentials.json", "w+", encoding="utf8") as file:
+		print("config/credentials.json not found, please download from Google Cloud...")
+		exit()
+
 def open_config() -> TextIO:
 	"""
 	Opens the config/google.json file. Creates one if it doesn't exist.

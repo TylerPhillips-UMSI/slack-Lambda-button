@@ -153,7 +153,6 @@ def setup_aws() -> boto3.client:
 
             json.dump(config_defaults, file)
             print("Please fill out config/aws.json before running again.")
-        exit()
 
     config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
     try:

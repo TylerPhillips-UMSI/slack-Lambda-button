@@ -18,7 +18,7 @@ import threading # for sqs polling
 
 from PIL import Image, ImageTk
 
-import simpleaudio as sa
+# import simpleaudio as sa
 
 import slack
 import aws
@@ -31,8 +31,8 @@ pending_message_ids = [] # pending messages from this device specifically
 message_to_channel = {} # maps message ids to channel ids
 frames = []
 
-INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
-RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
+# INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
+# RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
 
 def preload_frames(root: tk.Tk):
     """
@@ -186,8 +186,8 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         pending_message_ids.append(message_id)
         message_to_channel[message_id] = channel_id
 
-    play_obj = INTERACT_SOUND.play()
-    play_obj.wait_done()
+    # play_obj = INTERACT_SOUND.play()
+    # play_obj.wait_done()
 
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
@@ -272,8 +272,8 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
                     aws.LATEST_MESSAGE = None
 
-                    play_obj = RECEIVE_SOUND.play()
-                    play_obj.wait_done()
+                    # play_obj = RECEIVE_SOUND.play()
+                    # play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
                     revert_to_main(root, frame, style, do_post)
