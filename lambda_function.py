@@ -363,6 +363,8 @@ def post_to_slack(channel_id: str, message: str, device_id: str):
         "text": message
     }
 
+    print(channel_id)
+
     # 10 second timeout
     post_response = requests.post(url, headers=headers, json=payload, timeout=10)
     response_data = post_response.json()

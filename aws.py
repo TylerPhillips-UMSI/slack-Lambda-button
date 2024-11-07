@@ -15,7 +15,7 @@ import boto3
 LATEST_MESSAGE = None # latest SQS message
 STOP_THREAD = False
 
-def post_to_slack(aws_client: boto3.client, message: str, channel_id: str, 
+def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
                   device_id: str, dev: bool):
     """
     Posts a message to Slack using chat.postMessage
