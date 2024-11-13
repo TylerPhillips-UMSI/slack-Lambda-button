@@ -132,7 +132,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
     press_type = "LONG" if press_length > 2 else "SINGLE"
 
     # set up Google Sheets and grab the config
-    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets()
+    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_config")
     device_id = BUTTON_CONFIG["device_id"]
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)

@@ -80,6 +80,34 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         Payload=payload
     )
 
+def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
+    """
+    Edits a message on Slack to mark it replied
+
+    Args:
+        aws_client (boto3.client): the AWS client we're using
+        message_id (str): the message id to edit
+        channel_id (str): the Slack channel to send the message to
+        dev (bool): whether we're using the dev AWS instance
+    """
+
+    print(f"Marking message {message_id} as replied...")
+
+    payload = {
+        "body": {
+            "type": "message_replied",
+            "message_id": message_id,
+            "channel_id": channel_id
+        }
+    }
+    payload = json.dumps(payload) # convert dict to string
+
+    # invoke the AWS Lambda function
+    aws_client.invoke(
+        FunctionName="slackLambda" + "-dev" if dev else "",
+        Payload=payload
+    )
+
 def poll_sqs(sqs_client: boto3.client, device_id: str):
     """
     Periodically polls SQS, will run on a separate thread

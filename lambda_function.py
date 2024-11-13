@@ -119,7 +119,12 @@ def lambda_handler(event: dict, context: object):
         channel_id = event_body.get("channel_id", "")
         message_id = event_body.get("message_id", "")
         message = "message_timeout"
-        message_timeout(channel_id, message_id)
+        mark_message_timedout(channel_id, message_id)
+    elif event_type == "message_replied":
+        channel_id = event_body.get("channel_id", "")
+        message_id = event_body.get("message_id", "")
+        message = "message_replied"
+        mark_message_replied(channel_id, message_id)
     else:
         return {
             "statusCode": 404
@@ -382,7 +387,7 @@ def post_to_slack(channel_id: str, message: str, device_id: str):
 
     return message_id, channel_id
 
-def message_timeout(channel_id: str, message_id: str):
+def mark_message_timedout(channel_id: str, message_id: str):
     """
     Marks a message as timed out (usually after 3 minutes)
     Args:
@@ -394,6 +399,19 @@ def message_timeout(channel_id: str, message_id: str):
         message_append(channel_id, message_id, "*(timed out)*")
 
         print(f"Message {message_id} has timed out")
+
+def mark_message_replied(channel_id: str, message_id: str):
+    """
+    Marks a message as replied (usually after 3 minutes)
+    Args:
+        channel_id (str): the Slack channel ID where the message was posted
+        message_id (str): the message ID/timestamp to get content from
+    """
+    if message_id in pending_messages:
+        pending_messages.remove(message_id)
+        message_append(channel_id, message_id, "*(replied)*")
+
+        print(f"Message {message_id} has been marked as replied")
 
 if __name__ == "__main__":
     # Run test

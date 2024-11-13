@@ -35,9 +35,12 @@ except (FileNotFoundError, json.JSONDecodeError):
 		print("config/credentials.json not found, please download from Google Cloud...")
 		exit()
 
-def open_config() -> TextIO:
+def open_config(config_name: str) -> TextIO:
 	"""
 	Opens the config/google.json file. Creates one if it doesn't exist.
+
+	Args:
+		config_name (str): the name of the config file to open
 
 	Returns:
 		config_file (TextIO): the config file that we opened
@@ -50,7 +53,7 @@ def open_config() -> TextIO:
 		Path(config_dir).mkdir(parents=True, exist_ok=True)
 
 	# if there's no google.json, create one and tell the user
-	config_path = f"{config_dir}/google.json"
+	config_path = f"{config_dir}/{config_name}.json"
 	if not os.path.exists(config_path):
 		with open(config_path, "w", encoding="utf8") as config_file:
 			config_contents = {
@@ -59,7 +62,7 @@ def open_config() -> TextIO:
 			}
 
 			json.dump(config_contents, config_file)
-		print("""config/google.json did not exist, one has been created for you. Please at least fill out the \"title\" field before running again. 
+		print(f"""{config_path} did not exist, one has been created for you. Please at least fill out the \"title\" field before running again. 
 			  To use an existing spreadsheet, put the \"id\" field in as well from the Google Sheets URL.""")
 
 		exit(1)
@@ -380,9 +383,12 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 
 		return contents
 
-def setup_sheets():
+def setup_sheets(config_name: str):
 	"""
 	Sets up a Google Sheet using the configuration provided.
+
+	Args:
+		config_name (str): the name of the config file to open
 
 	Returns:
 		config_file: the config file that we created or opened
@@ -395,7 +401,7 @@ def setup_sheets():
 	# Log in using OAuth
 	creds = do_oauth_flow()
 
-	config_file = open_config()
+	config_file = open_config(config_name)
 
 	sheets_service = None
 	drive_service = None
