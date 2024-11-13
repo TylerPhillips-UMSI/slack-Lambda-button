@@ -408,7 +408,6 @@ def mark_message_replied(channel_id: str, message_id: str):
         message_id (str): the message ID/timestamp to get content from
     """
     if message_id in pending_messages:
-        pending_messages.remove(message_id)
         message_append(channel_id, message_id, "*(replied)*")
 
         print(f"Message {message_id} has been marked as replied")

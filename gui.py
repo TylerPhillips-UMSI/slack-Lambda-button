@@ -291,10 +291,24 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     # still allow for multi-replies
                     reply_received = True
 
+                    # if we've received a reply mark it replied
+                    message_id = pending_message_ids[0]
+                    channel_id = message_to_channel[message_id]
+                    aws.mark_message_replied(slack.lambda_client, message_id, channel_id, True)
+
                     # play_obj = RECEIVE_SOUND.play()
                     # play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
+                    sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID, slack.BUTTON_CONFIG["device_id"])
+                    sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
+                                    [
+                                    slack.get_datetime(), 
+                                    sheets_button_config[3], # gets location
+                                    "Resolved"
+                                    ]
+                                )
+
                     revert_to_main(root, frame, style, do_post)
                     aws.LATEST_MESSAGE = None
 
@@ -306,7 +320,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                             [
                             slack.get_datetime(), 
                             sheets_button_config[3], # gets location
-                            "Replied" if reply_received else ("Timed Out" if len(pending_message_ids) > 0 else "Resolved")
+                            "Replied" if reply_received else "Timed Out"
                             ]
                           )
 
