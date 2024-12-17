@@ -353,7 +353,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     waiting_label = ttk.Label(frame, text="Updates will be provided on this screen.",
                               style="Waiting.TLabel")
-    waiting_label.configure(wraplength=32)
+    waiting_label.configure(wraplength=root.winfo_screenwidth())
     waiting_label.place(relx=0.5, rely=0.60, anchor="center")
 
     root.update_idletasks() # gets stuff to load all at once
