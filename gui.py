@@ -20,7 +20,7 @@ import threading # for sqs polling
 
 from PIL import Image, ImageTk
 
-# import simpleaudio as sa
+import simpleaudio as sa
 
 import slack
 import aws
@@ -37,8 +37,8 @@ frames = []
 LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID = None, None
 CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID = None, None
 
-# INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
-# RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
+INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
+RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
 
 def preload_frames(root: tk.Tk):
     """
@@ -47,12 +47,16 @@ def preload_frames(root: tk.Tk):
     Args:
         root (tk.Tk): The root window.
     """
-    frame_count = 136
+    # frame_count = 136
 
-    with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
-        for i in range(frame_count):
-            gif.seek(i)
-            frames.append(load_and_scale_image(root, gif.copy()))
+    # with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
+    #     for i in range(frame_count):
+    #         gif.seek(i)
+    #         frames.append(load_and_scale_image(root, gif.copy()))
+
+    # STATIC IMAGE FOR NOW
+    # TODO: make animated :)
+    frames.append(load_and_scale_image(root, Image.open("images/stacked-white-smaller.png")))
 
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
@@ -147,17 +151,17 @@ def display_main(frame: tk.Frame, style: ttk.Style) -> None:
                 dude_img_label.configure(image=current_frame)
                 frame.after(20, update, index)
 
-        dude_img_label.place(relx=0.5, rely=0.36, anchor="center")
+        dude_img_label.place(relx=0.5, rely=0.34, anchor="center")
 
         update(0)
 
         instruction_label = ttk.Label(frame, text="Tap the screen!",
                                     style="Instructions.TLabel")
-        instruction_label.place(relx=0.5, rely=0.71, anchor="center")
+        instruction_label.place(relx=0.5, rely=0.71+.06, anchor="center")
 
         # help label has to be rendered after img to be seen (layering)
         help_label = ttk.Label(frame, text="Need help?", style="NeedHelp.TLabel")
-        help_label.place(relx=0.5, rely=0.57, anchor="center")
+        help_label.place(relx=0.5, rely=0.57+.06, anchor="center")
 
     load_contents()
 
@@ -192,8 +196,8 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         pending_message_ids.append(message_id)
         message_to_channel[message_id] = channel_id
 
-    # play_obj = INTERACT_SOUND.play()
-    # play_obj.wait_done()
+    play_obj = INTERACT_SOUND.play()
+    play_obj.wait_done()
 
     # post to Slack/console
     # NEEDS a 20ms delay in order to load the next screen consistently
@@ -296,8 +300,8 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     channel_id = message_to_channel[message_id]
                     aws.mark_message_replied(slack.lambda_client, message_id, channel_id, True)
 
-                    # play_obj = RECEIVE_SOUND.play()
-                    # play_obj.wait_done()
+                    play_obj = RECEIVE_SOUND.play()
+                    play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
                     sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID, slack.BUTTON_CONFIG["device_id"])

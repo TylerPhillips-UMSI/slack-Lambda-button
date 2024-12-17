@@ -438,7 +438,7 @@ def setup_sheets(config_name: str):
 	return config_file, sheets_service, drive_service, spreadsheet, spreadsheet_id
 
 if __name__ == "__main__":
-	_, sheets_service, drive_service, _, spreadsheet_id = setup_sheets()
+	_, sheets_service, drive_service, _, spreadsheet_id = setup_sheets("test")
 	get_spreadsheet(sheets_service, drive_service, spreadsheet_id)
 
 	print("")
