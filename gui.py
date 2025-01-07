@@ -47,16 +47,14 @@ def preload_frames(root: tk.Tk):
     Args:
         root (tk.Tk): The root window.
     """
-    # frame_count = 136
+    frame_count = 149
 
-    # with Image.open("images/DuderstadtAnimatedLogoTrans.gif") as gif:
-    #     for i in range(frame_count):
-    #         gif.seek(i)
-    #         frames.append(load_and_scale_image(root, gif.copy()))
+    with Image.open("images/custom-animation-fix.gif") as gif:
+        for i in range(frame_count):
+            gif.seek(i)
+            frames.append(load_and_scale_image(root, gif.copy()))
 
-    # STATIC IMAGE FOR NOW
-    # TODO: make animated :)
-    frames.append(load_and_scale_image(root, Image.open("images/stacked-white-smaller.png")))
+    # frames.append(load_and_scale_image(root, Image.open("images/stacked-white-smaller.png")))
 
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
