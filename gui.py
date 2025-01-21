@@ -7,10 +7,7 @@ Author:
 Nikki Hess - nkhess@umich.edu
 """
 
-import datetime
-from subprocess import DEVNULL, STDOUT, check_call
 import time
-import requests
 
 import tkinter as tk
 from tkinter import ttk
@@ -302,10 +299,12 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
-                    sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID, slack.BUTTON_CONFIG["device_id"])
+                    sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
+                                                            CONFIG_SPREADSHEET_ID,
+                                                            slack.BUTTON_CONFIG["device_id"])
                     sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
                                     [
-                                    slack.get_datetime(), 
+                                    slack.get_datetime(),
                                     sheets_button_config[3], # gets location
                                     "Resolved"
                                     ]
@@ -316,11 +315,13 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
         if timeout <= 0:
             revert_to_main(root, frame, style, do_post)
-            
-            sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID, slack.BUTTON_CONFIG["device_id"])
+
+            sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
+                                                    CONFIG_SPREADSHEET_ID,
+                                                    slack.BUTTON_CONFIG["device_id"])
             sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
                             [
-                            slack.get_datetime(), 
+                            slack.get_datetime(),
                             sheets_button_config[3], # gets location
                             "Replied" if reply_received else "Timed Out"
                             ]
@@ -435,9 +436,11 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
 
 def setup_logging():
     """
-    Runs the sheets function to set up logging, then sets the globals LOGGING_SHEETS_SERVICE + SPREADSHEET_ID
+    Runs the sheets function to set up logging,
+    then sets the globals LOGGING_SHEETS_SERVICE + SPREADSHEET_ID
     """
-    global LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID, CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID
+    global LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID, CONFIG_SHEETS_SERVICE
+    global CONFIG_SPREADSHEET_ID
 
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_logging")
     LOGGING_SHEETS_SERVICE = sheets_service

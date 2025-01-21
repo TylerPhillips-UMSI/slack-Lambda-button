@@ -31,9 +31,8 @@ try:
 	with open("config/credentials.json", "r", encoding="utf8") as file:
 		json.load(file)
 except (FileNotFoundError, json.JSONDecodeError):
-	with open("config/credentials.json", "w+", encoding="utf8") as file:
-		print("config/credentials.json not found, please download from Google Cloud...")
-		exit()
+	print("config/credentials.json not found or incorrect, please download from Google Cloud...")
+	exit()
 
 def open_config(config_name: str) -> TextIO:
 	"""
