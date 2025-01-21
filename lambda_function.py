@@ -95,6 +95,7 @@ def lambda_handler(event: dict, context: object):
         event_body = event_body.get("event", "{}")
         event_type = event_body.get("type")
 
+    print("full event:", event)
     print("type:", event_type)
     posted_message_id = None
     posted_message_channel = None
