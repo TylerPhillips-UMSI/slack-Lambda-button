@@ -11,6 +11,8 @@ pipx install requests
 pipx install google-api-python-client google-auth-httplib2 google-auth-oauthlib
 pipx install boto3
 pipx install pillow
+
+sudo apt-get install -y python3-dev libasound2-dev
 pipx install simpleaudio
 
 echo -e "\e[32mAll done! You may now run slack-Lambda-button via \"python gui.py\"\e[39m"
