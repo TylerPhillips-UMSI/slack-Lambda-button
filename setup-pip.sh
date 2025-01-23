@@ -6,4 +6,4 @@ pip install --upgrade boto3
 pip install --upgrade pillow
 pip install --upgrade simpleaudio
 
-echo -e "\e[All done! You may now run slack-Lambda-button via \"python gui.py\"\e[39m"
+echo -e "\e[32mAll done! You may now run slack-Lambda-button via \"python gui.py\"\e[39m"

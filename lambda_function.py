@@ -74,6 +74,8 @@ def lambda_handler(event: dict, context: object):
     Returns:
         dict: a response object for the HTTP request
     """
+    print("full payload:", event)
+
     event_body = event.get("body", "{}")
 
     # slack sends body as a json-string, but our local test code doesn't
@@ -95,7 +97,6 @@ def lambda_handler(event: dict, context: object):
         event_body = event_body.get("event", "{}")
         event_type = event_body.get("type")
 
-    print("full event:", event)
     print("type:", event_type)
     posted_message_id = None
     posted_message_channel = None
