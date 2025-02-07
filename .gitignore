@@ -4,3 +4,4 @@ package.zip
 package/
 slack.json
 slackLambda-dev-aws.zip
+slack-lambda-button deployment.zip

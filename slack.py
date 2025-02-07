@@ -174,7 +174,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
 
-    # if we post to Slack, we need to go through AWS and return a message id
+    # if we post to Slack, we need to go through AWS and return a message/channel id
     if do_post:
         message_id, channel_id = aws.post_to_slack(aws_client, final_message, device_channel_id, device_id, True)
 

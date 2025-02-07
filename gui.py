@@ -209,7 +209,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         do_post (bool): whether to post to Slack
     """
 
-    base_timeout = 30
+    base_timeout = 180
 
     # countdown
     timeout = base_timeout
