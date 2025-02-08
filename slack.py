@@ -171,6 +171,8 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
     if press_type == "LONG":
         final_message = f"Testing button at {final_location}"
         final_message += f"\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
+    else:
+        final_message += "\n*To respond, reply to this message in a thread within 3 minutes*\n*To resolve, react with :white_check_mark: or :+1:*"
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
 

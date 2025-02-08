@@ -410,7 +410,10 @@ def mark_message_replied(channel_id: str, message_id: str):
         message_id (str): the message ID/timestamp to get content from
     """
     if message_id in pending_messages:
-        message_append(channel_id, message_id, "*(replied)*")
+        if not (get_message_content(channel_id, message_id).endswith("*(replied)*")
+                or get_message_content(channel_id, message_id).endswith("*(resolved)*")
+                or get_message_content(channel_id, message_id).endswith("*(timed out)*")):
+            message_append(channel_id, message_id, "*(replied)*")
 
         print(f"Message {message_id} has been marked as replied")
 
