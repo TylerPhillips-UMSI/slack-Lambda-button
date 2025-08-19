@@ -192,7 +192,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         message_to_channel[message_id] = channel_id
 
         play_obj = INTERACT_SOUND.play()
-        play_obj.wait_done()
+        # play_obj.wait_done()
     else:
         ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.", style="Escape.TLabel")
         ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
@@ -301,7 +301,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     aws.mark_message_replied(slack.lambda_client, message_id, channel_id, True)
 
                     play_obj = RECEIVE_SOUND.play()
-                    play_obj.wait_done()
+                    # play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
                     sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
