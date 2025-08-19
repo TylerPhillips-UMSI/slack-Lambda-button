@@ -11,6 +11,8 @@ import json
 import requests
 from threading import Timer
 import boto3
+import time
+import re
 
 # Read the configuration files
 try:
@@ -59,6 +61,8 @@ SNS_CLIENT = boto3.client(
 BUTTON_CONFIG = CONFIG["button_config"]
 BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
 
+POST_COOLDOWN = 1 * 60 # 1 minute
+
 pending_messages = []
 message_to_channel = {} # pairs message ids with channel ids
 message_to_device_id = {} # pairs message ids with device ids
@@ -77,6 +81,9 @@ def lambda_handler(event: dict, context: object):
     print("full payload:", event)
 
     event_body = event.get("body", "{}")
+    if isinstance(event_body, str):
+        event_body.replace("“", "\"").replace("”", "\"").replace("‘", "\"").replace("’", "\"").replace(",", "\"")
+    print(event_body)
 
     # slack sends body as a json-string, but our local test code doesn't
     # so let's handle both here
@@ -104,9 +111,8 @@ def lambda_handler(event: dict, context: object):
     # according to THIS page: https://api.slack.com/events/message/message_replied
     # there is a bug where subtype is currently missing when the event is
     # dispatched via the events API. until fixed, we need to verify that it has a thread_ts,
-    # which is unique to message replies here
+    # which is unique to message replies
     if event_type == "message" and event_body.get("thread_ts") is not None:
-        # this is awful :(
         message = event_body.get("text")
         handle_message_replied(event_body, message)
     elif event_type == "reaction_added":
@@ -116,7 +122,8 @@ def lambda_handler(event: dict, context: object):
         channel_id = event_body.get("channel_id", "")
         message = event_body.get("message", "")
         device_id = event_body.get("device_id", "")
-        posted_message_id, posted_message_channel = post_to_slack(channel_id, message, device_id)
+        location = event_body.get("location", "")
+        posted_message_id, posted_message_channel = post_to_slack(channel_id, message, device_id, location)
     elif event_type == "message_timeout":
         channel_id = event_body.get("channel_id", "")
         message_id = event_body.get("message_id", "")
@@ -174,6 +181,54 @@ def get_user_display_name(user_id: str):
     display_name = user_info["user"]["profile"].get("display_name", user_name)
 
     return display_name
+
+def get_location_last_message(channel_id: str, user_id: str, location: str):
+    """
+    Gets a user's last message from Slack via their ID
+
+    Args:
+        channel_id (str): the ID of the channel to look through
+        user_id (str): the user ID to gather info on
+        location (str): the location we're finding the last message from
+
+    Returns:
+        dict: the data of the last message the user sent
+    """
+
+    # no empty locations pls
+    if location == "":
+        return None
+
+    url = "https://slack.com/api/conversations.history"
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
+    }
+    params = {
+        "channel": channel_id,
+        "oldest": str(time.time() - POST_COOLDOWN), # get messages within cooldown period
+        "inclusive": True
+    }
+
+    # 10 second timeout
+    ct_response = requests.get(url, headers=headers, params=params, timeout=10)
+    response_data = ct_response.json()
+
+    if not response_data.get("ok"):
+        raise RuntimeError(f"Error retrieving message: {response_data['error']}")
+
+    messages = response_data.get("messages")
+
+    # loop over recent messages
+    for message in messages:
+        user = message.get("user")
+        text = message.get("text")
+        print(text.split(" "))
+        # verify this is from the user specified and is in the location specified
+        if user == user_id and location.strip() in text:
+            return message
+
+    return None
 
 def handle_message_replied(event: dict, reply_text: str) -> bool:
     """
@@ -352,13 +407,14 @@ def message_append(channel_id: str, ts: str, to_append: str):
 
     return response_data
 
-def post_to_slack(channel_id: str, message: str, device_id: str):
+def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
     """
     Posts a message to Slack using chat.postMessage
 
     Args:
         channel (str): the Slack channel to send the message to
         message (str): the message to send
+        location (str): the location we're sending from
     """
     url = "https://slack.com/api/chat.postMessage"
     headers = {
@@ -370,7 +426,17 @@ def post_to_slack(channel_id: str, message: str, device_id: str):
         "text": message
     }
 
-    print(channel_id)
+    last_message = get_location_last_message(channel_id, get_bot_user_id(), location)
+    if last_message:
+        print("Last message found: ", last_message["ts"])
+        last_message_time = float(last_message["ts"])
+        current_time = time.time()
+
+        # if the difference between this message's time and 
+        # the last message's is less than the cooldown, don't post
+        if last_message_time and current_time - last_message_time <= POST_COOLDOWN:
+            print("Posting messages too fast! Rate limit applied.")
+            return "N/A", "N/A"
 
     # 10 second timeout
     post_response = requests.post(url, headers=headers, json=payload, timeout=10)
@@ -388,6 +454,25 @@ def post_to_slack(channel_id: str, message: str, device_id: str):
     print(f"Message posted with ID: {message_id}")
 
     return message_id, channel_id
+
+def get_bot_user_id():
+    """
+    Retrieves the user ID of the currently running bot
+    Returns:
+        str: The bot's user ID
+    """
+    url = "https://slack.com/api/auth.test"
+    headers = {
+        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
+    }
+
+    response = requests.get(url, headers=headers, timeout=10)
+    response_data = response.json()
+
+    if not response_data.get("ok"):
+        raise RuntimeError(f"Error retrieving bot user ID: {response_data['error']}")
+
+    return response_data["user_id"]
 
 def mark_message_timedout(channel_id: str, message_id: str):
     """
