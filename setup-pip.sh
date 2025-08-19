@@ -1,5 +1,6 @@
 echo -e "\e[32mStarting setup for slack-Lambda-button for Linux...\e[39m"
 
+# install requirements
 sudo apt-get install -y python3-dev libasound2-dev
 pip install --upgrade -r requirements.txt
 
