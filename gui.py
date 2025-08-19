@@ -22,6 +22,7 @@ import simpleaudio as sa
 import slack
 import aws
 import sheets
+import auto_updater
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
@@ -304,19 +305,16 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
-                    try:
-                        sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
-                                                                CONFIG_SPREADSHEET_ID,
-                                                                slack.BUTTON_CONFIG["device_id"])
-                        sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
-                                        [
-                                        slack.get_datetime(),
-                                        sheets_button_config[3], # gets location
-                                        "Resolved"
-                                        ]
-                                    )
-                    except Exception as e:
-                        root.destroy()
+                    sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
+                                                            CONFIG_SPREADSHEET_ID,
+                                                            slack.BUTTON_CONFIG["device_id"])
+                    sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
+                                    [
+                                    slack.get_datetime(),
+                                    sheets_button_config[3], # gets location
+                                    "Resolved"
+                                    ]
+                                )
 
                     revert_to_main(root, frame, style, do_post)
                     
@@ -517,6 +515,12 @@ def display_gui() -> None:
     # Fade the escape label out
     root.after(escape_display_period_ms, fade_label, root,
                escape_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
+
+    # run the auto updater
+    interval_seconds = 15 * 60 # every 15 minutes
+
+    thread = threading.Thread(target=auto_updater.do_auto_update, args=(interval_seconds,), daemon=True)
+    thread.start()
 
     # run
     root.mainloop()
