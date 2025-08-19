@@ -61,7 +61,7 @@ SNS_CLIENT = boto3.client(
 BUTTON_CONFIG = CONFIG["button_config"]
 BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
 
-POST_COOLDOWN = 1 * 60 # 1 minute
+POST_COOLDOWN = 15 # in seconds
 
 pending_messages = []
 message_to_channel = {} # pairs message ids with channel ids
@@ -151,15 +151,15 @@ def lambda_handler(event: dict, context: object):
 
     return response
 
-def get_user_display_name(user_id: str):
+def get_user_first_name(user_id: str):
     """
-    Gets a user's display name from Slack via their ID, falls back on real name
+    Gets a user's name from Slack via their ID, falls back on real name
 
     Args:
         user_id (str): the user ID to gather info on
 
     Returns:
-        str: the user's display name/real name/Unknown
+        str: the user's first name
     """
     url = "https://slack.com/api/users.info"
     headers = {
@@ -177,10 +177,10 @@ def get_user_display_name(user_id: str):
     if not user_info.get("ok"):
         raise RuntimeError(f"Error retrieving message: {user_info['error']}")
 
-    user_name = user_info["user"].get("real_name", "Unknown")
-    display_name = user_info["user"]["profile"].get("display_name", user_name)
+    first_name = user_info["user"].get("real_name", "Unknown") # get real name
+    first_name = first_name.split()[0] # trim to first name only
 
-    return display_name
+    return first_name
 
 def get_location_last_message(channel_id: str, user_id: str, location: str):
     """
@@ -248,7 +248,7 @@ def handle_message_replied(event: dict, reply_text: str) -> bool:
 
     # gather information about the author
     author_id = event.get("user")
-    author_name = get_user_display_name(author_id)
+    author_name = get_user_first_name(author_id)
 
     # going to be used in the GUI to determine if we should display the message
     resolved = False
@@ -308,7 +308,7 @@ def handle_reaction_added(event: dict) -> bool:
 
     # gather information about the author
     author_id = event.get("user")
-    author_name = get_user_display_name(author_id)
+    author_name = get_user_first_name(author_id)
 
     if message_id in pending_messages:
         # no colons in Slack reaction values
