@@ -23,15 +23,18 @@ def do_auto_update(interval_seconds: int):
         interval_seconds (int): the number of seconds between update checks
     """
     while True:
+        # at the top to make sure it doesn't happen on startup
+        time.sleep(interval_seconds)
+
         print("Checking for updates...")
 
         g = git.cmd.Git(os.getcwd())
         result = g.pull()
+
+        print(result)
 
         # if we needed to update let's restart to apply changes
         if not "Already up to date." in result:
             _restart_gui()
         else:
             print("No updates found.")
-
-        time.sleep(interval_seconds)

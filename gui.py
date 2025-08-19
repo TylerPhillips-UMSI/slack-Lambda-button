@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
+import sys
 import threading # for sqs polling
 
 from PIL import Image, ImageTk
@@ -158,7 +159,7 @@ def display_main(frame: tk.Frame, style: ttk.Style) -> None:
         instruction_label.place(relx=0.5, rely=0.71+.06, anchor="center")
 
         # help label has to be rendered after img to be seen (layering)
-        help_label = ttk.Label(frame, text="Need help?", style="NeedHelp.TLabel")
+        help_label = ttk.Label(frame, text="Neeed help?", style="NeedHelp.TLabel")
         help_label.place(relx=0.5, rely=0.57+.06, anchor="center")
 
     load_contents()
@@ -526,6 +527,7 @@ def display_gui() -> None:
     root.mainloop()
 
 if __name__ == "__main__":
-    setup_logging()
+    with open("log.txt", "w") as sys.stdout:
+        setup_logging()
 
-    display_gui()
+        display_gui()
