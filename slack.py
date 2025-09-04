@@ -100,7 +100,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
     try:
         response = requests.get(
             "http://worldtimeapi.org/api/timezone/America/Detroit",
-            timeout=5
+            timeout=3
         )
         response.raise_for_status() # prevent uncatchable errors
         response_data = response.json()
