@@ -18,7 +18,12 @@ import threading # for sqs polling
 
 from PIL import Image, ImageTk
 
-import simpleaudio as sa
+is_simpleaudio_installed = True
+try:
+    import simpleaudio as sa
+except ImportError as e:
+    print("WARNING: SimpleAudio is not installed, audio will not play")
+    is_simpleaudio_installed = False
 
 import slack
 import aws
@@ -36,10 +41,11 @@ frames = []
 LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID = None, None
 CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID = None, None
 
-INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
-RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
-RATELIMIT_SOUND = sa.WaveObject.from_wave_file("audio/ratelimit.wav")
-RESOLVED_SOUND = sa.WaveObject.from_wave_file("audio/resolved.wav")
+if is_simpleaudio_installed:
+    INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
+    RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
+    RATELIMIT_SOUND = sa.WaveObject.from_wave_file("audio/ratelimit.wav")
+    RESOLVED_SOUND = sa.WaveObject.from_wave_file("audio/resolved.wav")
 
 def preload_frames(root: tk.Tk):
     """
@@ -195,14 +201,16 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
 
         pending_message_ids.append(message_id)
         message_to_channel[message_id] = channel_id
-
-        play_obj = INTERACT_SOUND.play()
-        play_obj.wait_done()
+        if is_simpleaudio_installed:
+            play_obj = INTERACT_SOUND.play()
+            play_obj.wait_done()
     else:
         ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.", style="Escape.TLabel")
         ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
 
-        ratelimit_obj = RATELIMIT_SOUND.play()
+        if is_simpleaudio_installed:
+            ratelimit_obj = RATELIMIT_SOUND.play()
+            ratelimit_obj.wait_done()
 
         root.after(3 * 1000, fade_label, root,
                 ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
@@ -305,8 +313,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     channel_id = message_to_channel[message_id]
                     aws.mark_message_replied(slack.lambda_client, message_id, channel_id, True)
 
-                    play_obj = RECEIVE_SOUND.play()
-                    play_obj.wait_done()
+                    if is_simpleaudio_installed:
+                        play_obj = RECEIVE_SOUND.play()
+                        play_obj.wait_done()
                 # else revert to main and cancel this countdown
                 else:
                     sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
@@ -322,8 +331,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
                     revert_to_main(root, frame, style, do_post)
                     
-                    resolved_obj = RESOLVED_SOUND.play()
-                    resolved_obj.wait_done()
+                    if is_simpleaudio_installed:
+                        resolved_obj = RESOLVED_SOUND.play()
+                        resolved_obj.wait_done()
 
                     aws.LATEST_MESSAGE = None
 
