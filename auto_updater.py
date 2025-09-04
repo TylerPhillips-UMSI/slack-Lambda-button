@@ -7,11 +7,16 @@ Author:
 Nikki Hess - nkhess@umich.edu
 """
 
-import git
+no = False # lazy, will rename later
 
-import subprocess
+try:
+    import git
+except ImportError as e:
+    no = True
+
 import sys
 import os
+import time
 
 def _restart_gui():
     os.execv(sys.executable, [sys.executable, "gui.py"])
@@ -22,19 +27,20 @@ def do_auto_update(interval_seconds: int):
     Args:
         interval_seconds (int): the number of seconds between update checks
     """
-    while True:
-        # at the top to make sure it doesn't happen on startup
-        time.sleep(interval_seconds)
+    if not no:
+        while True:
+            # at the top to make sure it doesn't happen on startup
+            time.sleep(interval_seconds)
 
-        print("Checking for updates...")
+            print("Checking for updates...")
 
-        g = git.cmd.Git(os.getcwd())
-        result = g.pull()
+            g = git.cmd.Git(os.getcwd())
+            result = g.pull()
 
-        print(result)
+            print(result)
 
-        # if we needed to update let's restart to apply changes
-        if not "Already up to date." in result:
-            _restart_gui()
-        else:
-            print("No updates found.")
+            # if we needed to update let's restart to apply changes
+            if not "Already up to date." in result:
+                _restart_gui()
+            else:
+                print("No updates found.")

@@ -36,7 +36,12 @@ PRESS_START = None # for long button presses
 
 pending_message_ids = [] # pending messages from this device specifically
 message_to_channel = {} # maps message ids to channel ids
+
+pending_message_ids_lock = threading.Lock()
+
 frames = []
+frames_ready = False
+frames_lock = threading.Lock()
 
 LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID = None, None
 CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID = None, None
@@ -47,21 +52,41 @@ if is_simpleaudio_installed:
     RATELIMIT_SOUND = sa.WaveObject.from_wave_file("audio/ratelimit.wav")
     RESOLVED_SOUND = sa.WaveObject.from_wave_file("audio/resolved.wav")
 
-def preload_frames(root: tk.Tk):
+def preload_frames_lazy(root: tk.Tk):
     """
-    Preloads and caches images.
+    Preloads and caches images lazily.
+    First frame available immediately, others load in the background.
     
     Args:
         root (tk.Tk): The root window.
     """
+    global frames, frames_ready
+
     frame_count = 149
 
-    with Image.open("images/custom-animation-fix.gif") as gif:
-        for i in range(frame_count):
-            gif.seek(i)
-            frames.append(load_and_scale_image(root, gif.copy()))
+    base = {"width": 1920, "height": 1080}
+    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
+    scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
 
-    # frames.append(load_and_scale_image(root, Image.open("images/stacked-white-smaller.png")))
+    with Image.open("images/custom-animation-fix.gif") as gif:
+        gif.seek(0)
+        with frames_lock: # lock to prevent race conditions (not guaranteed)
+            frames.append(load_and_scale_image(root, gif.copy(), scale))
+
+    def worker():
+        global frames_ready
+        with Image.open("images/custom-animation-fix.gif") as gif:
+            for i in range(1, frame_count):
+                try:
+                    gif.seek(i)
+                    with frames_lock: # lock in case of race conditions (not guaranteed)
+                        frames.append(load_and_scale_image(root, gif.copy(), scale))
+                except EOFError:
+                    # if we can't load any more frames, get outta here
+                    break
+        frames_ready = True
+
+    threading.Thread(target=worker, daemon=True).start()
 
 
 def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
@@ -102,28 +127,21 @@ def scale_font(root: tk.Tk, base_size: int) -> int:
 
     return int(calculated_scale * base_size)
 
-def load_and_scale_image(root: tk.Tk, img: Image.Image) -> ImageTk.PhotoImage:
+def load_and_scale_image(root: tk.Tk, img: Image.Image, scale: float) -> ImageTk.PhotoImage:
     """
     Uses PIL to rescale an image based on the size of the window
 
     Args:
         root (tk.Tk): the root window
         image_path (str): the image to load and scale
+        scale (float): the new scale for the image
 
     Returns:
         ImageTk.PhotoImage: the scaled PhotoImage for TKinter
     """
 
-    base = {"width": 1920, "height": 1080}
-    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
-
-    if actual["width"] == base["width"] and actual["height"] == base["height"]:
-        return ImageTk.PhotoImage(img)
-
-    scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
     new_size = (int(scale * img.width), int(scale * img.height))
-
-    resized_image = img.resize(new_size, Image.Resampling.LANCZOS)
+    resized_image = img.resize(new_size, Image.Resampling.BILINEAR) # BILINEAR is faster than LANCZOS
     photo_image = ImageTk.PhotoImage(resized_image)
 
     return photo_image
@@ -145,20 +163,28 @@ def display_main(frame: tk.Frame, style: ttk.Style) -> None:
         style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
 
         dude_img_label = ttk.Label(frame, image=frames[0], background=BLUE)
+        dude_img_label.place(relx=0.5, rely=0.34, anchor="center")
 
         frame_count = len(frames)
 
-        def update(index: int) -> None:
-            current_frame = frames[index]
-            index += 1
+        # poll frames_ready to wait for frames to load
+        def start_animation():
+            if len(frames) < 2:
+                # wait for at least 2 frames to start
+                frame.after(50, start_animation)
+                return
 
-            if index != frame_count:
-                dude_img_label.configure(image=current_frame)
-                frame.after(20, update, index)
+            def update(index: int):
+                if index >= len(frames):
+                    # stop at the last frame
+                    return
+                dude_img_label.configure(image=frames[index])
+                frame.after(20, update, index + 1)
 
-        dude_img_label.place(relx=0.5, rely=0.34, anchor="center")
+            update(0)
 
-        update(0)
+
+        start_animation()
 
         instruction_label = ttk.Label(frame, text="Tap the screen!",
                                     style="Instructions.TLabel")
@@ -199,18 +225,17 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         root.unbind("<ButtonRelease-1>")
         display_post_interaction(root, frame, style, do_post)
 
-        pending_message_ids.append(message_id)
+        with pending_message_ids_lock:
+            pending_message_ids.append(message_id)
         message_to_channel[message_id] = channel_id
         if is_simpleaudio_installed:
-            play_obj = INTERACT_SOUND.play()
-            play_obj.wait_done()
+            INTERACT_SOUND.play()
     else:
         ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.", style="Escape.TLabel")
         ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
 
         if is_simpleaudio_installed:
-            ratelimit_obj = RATELIMIT_SOUND.play()
-            ratelimit_obj.wait_done()
+            RATELIMIT_SOUND.play()
 
         root.after(3 * 1000, fade_label, root,
                 ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
@@ -291,51 +316,53 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
             reply_author = aws.LATEST_MESSAGE["reply_author"]
             reply_text = aws.LATEST_MESSAGE["reply_text"]
 
-            if ts in pending_message_ids:
-                # if no resolving reaction/emoji, display message
-                if not "white_check_mark" in reply_text and not "+1" in reply_text:
-                    received_label.configure(text="")
-                    waiting_label.configure(text=f"From {reply_author}\n" + reply_text)
-                    waiting_label.place_configure(rely=0.5)
+            with pending_message_ids_lock:
+                if ts in pending_message_ids:
+                    # if no resolving reaction/emoji, display message
+                    if not "white_check_mark" in reply_text and not "+1" in reply_text:
+                        received_label.configure(text="")
+                        waiting_label.configure(text=f"From {reply_author}\n" + reply_text)
+                        waiting_label.place_configure(rely=0.5)
 
-                    aws.LATEST_MESSAGE = None
+                        aws.LATEST_MESSAGE = None
 
-                    # bump the timer up if necessary
-                    if timeout <= base_timeout // 3 + 1:
-                        timeout = base_timeout // 3 + 1
+                        # bump the timer up if necessary
+                        if timeout <= base_timeout // 3 + 1:
+                            timeout = base_timeout // 3 + 1
 
-                    # make sure the system knows we replied but
-                    # still allow for multi-replies
-                    reply_received = True
+                        # make sure the system knows we replied but
+                        # still allow for multi-replies
+                        reply_received = True
 
-                    # if we've received a reply mark it replied
-                    message_id = pending_message_ids[0]
-                    channel_id = message_to_channel[message_id]
-                    aws.mark_message_replied(slack.lambda_client, message_id, channel_id, True)
+                        # if we've received a reply mark it replied
+                        message_id = pending_message_ids[0]
+                        channel_id = message_to_channel[message_id]
+                        aws.mark_message_replied(slack.lambda_client, message_id, channel_id, True)
 
-                    if is_simpleaudio_installed:
-                        play_obj = RECEIVE_SOUND.play()
-                        play_obj.wait_done()
-                # else revert to main and cancel this countdown
-                else:
-                    sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
-                                                            CONFIG_SPREADSHEET_ID,
-                                                            slack.BUTTON_CONFIG["device_id"])
-                    sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
-                                    [
-                                    slack.get_datetime(),
-                                    sheets_button_config[3], # gets location
-                                    "Resolved"
-                                    ]
-                                )
+                        if is_simpleaudio_installed:
+                            RECEIVE_SOUND.play()
+                    # else revert to main and cancel this countdown
+                    else:
+                        sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
+                                                                CONFIG_SPREADSHEET_ID,
+                                                                slack.BUTTON_CONFIG["device_id"])
+                        
+                        threading.Thread(target=sheets.add_row, args=(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
+                                                                        [
+                                                                        slack.get_datetime(),
+                                                                        sheets_button_config[3], # gets location
+                                                                        "Resolved"
+                                                                        ]
+                                                                    ),
+                                                                daemon=True
+                                        ).start()
 
-                    revert_to_main(root, frame, style, do_post)
-                    
-                    if is_simpleaudio_installed:
-                        resolved_obj = RESOLVED_SOUND.play()
-                        resolved_obj.wait_done()
+                        revert_to_main(root, frame, style, do_post)
+                        
+                        if is_simpleaudio_installed:
+                            RESOLVED_SOUND.play()
 
-                    aws.LATEST_MESSAGE = None
+                        aws.LATEST_MESSAGE = None
 
         if timeout <= 0:
             revert_to_main(root, frame, style, do_post)
@@ -343,21 +370,24 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
             sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
                                                     CONFIG_SPREADSHEET_ID,
                                                     slack.BUTTON_CONFIG["device_id"])
-            sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
-                            [
-                            slack.get_datetime(),
-                            sheets_button_config[3], # gets location
-                            "Replied" if reply_received else "Timed Out"
-                            ]
-                          )
+            threading.Thread(target=sheets.add_row, args=(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
+                                                            [
+                                                            slack.get_datetime(),
+                                                            sheets_button_config[3], # gets location
+                                                            "Replied" if reply_received else "Timed Out"
+                                                            ]
+                                                         ),
+                                                         daemon=True
+                            ).start()
 
             # if we have a pending message or haven't received a reply,
             # we need to time out
-            if len(pending_message_ids) > 0 and not reply_received:
-                message_id = pending_message_ids[0]
-                channel_id = message_to_channel[message_id]
+            with pending_message_ids_lock:
+                if len(pending_message_ids) > 0 and not reply_received:
+                    message_id = pending_message_ids[0]
+                    channel_id = message_to_channel[message_id]
 
-                aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
+                    aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
 
         # schedule countdown until seconds_left is 1
         if timeout > 0:
@@ -455,7 +485,7 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
     """
 
     # set a framerate for the fade
-    fps = 60
+    fps = 30
 
     time_ = (1.0 / fps) * current_step
     current_step += 1
@@ -513,7 +543,7 @@ def display_gui() -> None:
     # if is_raspberry_pi:
     #     setup_gpio(root, display_frame, style, do_post)
 
-    preload_frames(root)
+    preload_frames_lazy(root)
 
     display_main(display_frame, style)
 

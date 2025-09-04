@@ -128,7 +128,7 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
         response = sqs_client.receive_message(
             QueueUrl=queue_url,
             MaxNumberOfMessages=1,
-            WaitTimeSeconds=10
+            WaitTimeSeconds=10 # no hammering AWS
         )
 
         # has to be obtained as a list first
@@ -154,8 +154,6 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
                 QueueUrl=queue_url,
                 ReceiptHandle=message["ReceiptHandle"]
             )
-
-            time.sleep(1)
 
 def setup_aws() -> boto3.client:
     """
