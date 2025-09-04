@@ -16,6 +16,7 @@ from typing import List
 from datetime import datetime
 from subprocess import DEVNULL, STDOUT, check_call
 import requests
+from requests.exceptions import RequestException
 import boto3
 
 import sheets
@@ -97,8 +98,11 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     formatted_time = None
     try:
-        response = requests.get("http://worldtimeapi.org/api/timezone/America/Detroit",
-                                timeout=5)
+        response = requests.get(
+            "http://worldtimeapi.org/api/timezone/America/Detroit",
+            timeout=5
+        )
+        response.raise_for_status() # prevent uncatchable errors
         response_data = response.json()
         iso_datetime = response_data["datetime"]
         current_time = datetime.fromisoformat(iso_datetime)
@@ -109,7 +113,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
             date_command = f"sudo date -s {iso_datetime}"
             date_command = date_command.split()
             check_call(date_command, stdout=DEVNULL, stderr=STDOUT)
-    except (requests.exceptions.Timeout, json.decoder.JSONDecodeError):
+    except (requests.exceptions.Timeout, json.decoder.JSONDecodeError, RequestException):
         # Fall back on system time, though potentially iffy
         now = datetime.now()
         formatted_time = now.strftime("%B %d, %Y %I:%M:%S %p")

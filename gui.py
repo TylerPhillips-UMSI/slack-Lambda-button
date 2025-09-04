@@ -207,38 +207,47 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         style (ttk.Style): the style manager for our window
         do_post (bool): whether or not to post to the Slack channel
     """
-    current_time = time.time()
+    def worker():
+        current_time = time.time()
 
-    if(current_time - PRESS_START >= 3):
-        sys.exit(0)
+        if current_time - PRESS_START >= 3:
+            root.quit()  # exit cleanly on long press
+            return
 
-    message_id, channel_id = slack.handle_interaction(slack.lambda_client, do_post,
-            (current_time - PRESS_START) if PRESS_START is not None else 0)
+        message_id, channel_id = slack.handle_interaction(
+            slack.lambda_client, do_post,
+            (current_time - PRESS_START) if PRESS_START else 0
+        )
 
-    if message_id != "statusCode":
-        # clear display
-        for widget in frame.winfo_children():
-            widget.place_forget()
+        def gui_update():
+            if message_id != "statusCode":
+                # clear display and switch frames
+                for widget in frame.winfo_children():
+                    widget.place_forget()
 
-        # clear left click binding
-        root.unbind("<ButtonPress-1>")
-        root.unbind("<ButtonRelease-1>")
-        display_post_interaction(root, frame, style, do_post)
+                root.unbind("<ButtonPress-1>")
+                root.unbind("<ButtonRelease-1>")
 
-        with pending_message_ids_lock:
-            pending_message_ids.append(message_id)
-        message_to_channel[message_id] = channel_id
-        if is_simpleaudio_installed:
-            INTERACT_SOUND.play()
-    else:
-        ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.", style="Escape.TLabel")
-        ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
+                display_post_interaction(root, frame, style, do_post)
 
-        if is_simpleaudio_installed:
-            RATELIMIT_SOUND.play()
+                with pending_message_ids_lock:
+                    pending_message_ids.append(message_id)
+                message_to_channel[message_id] = channel_id
 
-        root.after(3 * 1000, fade_label, root,
-                ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
+                if is_simpleaudio_installed:
+                    INTERACT_SOUND.play()
+            else:
+                ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.",
+                                            style="Escape.TLabel")
+                ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
+                if is_simpleaudio_installed:
+                    RATELIMIT_SOUND.play()
+                root.after(3 * 1000, fade_label, root,
+                           ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
+
+        root.after(0, gui_update)
+
+    threading.Thread(target=worker, daemon=True).start()
 
 def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) -> None:
     """
@@ -279,6 +288,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     text_widget.tag_add("right", "1.0", "end")
 
     def update_text_widget():
+        if not text_widget.winfo_exists():
+            return
+        
         text_widget.config(state=tk.NORMAL) # enable editing
 
         text_widget.delete("1.0", tk.END)
