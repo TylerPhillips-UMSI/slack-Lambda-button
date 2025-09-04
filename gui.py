@@ -159,7 +159,7 @@ def display_main(frame: tk.Frame, style: ttk.Style) -> None:
         instruction_label.place(relx=0.5, rely=0.71+.06, anchor="center")
 
         # help label has to be rendered after img to be seen (layering)
-        help_label = ttk.Label(frame, text="Neeed help?", style="NeedHelp.TLabel")
+        help_label = ttk.Label(frame, text="Need help?", style="NeedHelp.TLabel")
         help_label.place(relx=0.5, rely=0.57+.06, anchor="center")
 
     load_contents()
@@ -176,6 +176,9 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         do_post (bool): whether or not to post to the Slack channel
     """
     current_time = time.time()
+
+    if(current_time - PRESS_START >= 3):
+        sys.exit(0)
 
     message_id, channel_id = slack.handle_interaction(slack.lambda_client, do_post,
             (current_time - PRESS_START) if PRESS_START is not None else 0)
